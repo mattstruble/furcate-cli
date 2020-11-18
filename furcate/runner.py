@@ -5,6 +5,7 @@ import threading
 import time
 import json
 
+from .gpu_helper import get_gpus
 
 class TrainingThread (threading.Thread):
     OS_LOCk = threading.Lock()
@@ -33,7 +34,7 @@ class TrainingThread (threading.Thread):
             os.makedirs(self.config['log_dir'])
 
     def _generate_run_command(self, config_path):
-        command = 'python3 {} --config "{}" --id "{}" --gpu "{}" --child "{}"'.format(
+        command = 'python3 {} --config "{}" --name "{}" --gpu "{}" --id "{}"'.format(
             self.script_name, config_path, self.name, self.config['gpu'], self.threadID)
 
         return command
@@ -70,7 +71,12 @@ class Runner(object):
         self.run_configs = self.config.gen_run_configs()
 
     def run(self, script_name, framework='tf'):
-        gpus = self._get_gpus(framework)
+        gpus = get_gpus(framework)
+
+        if len(gpus) < 1 and ('allow_cpu' not in self.meta or self.meta['allow_cpu'] is False):
+            raise ValueError(
+                "CPU processing is not enabled and could not find GPU devices to run on. If you want to enable CPU processing please update the config: { 'meta': { 'allow_cpu': true } }")
+
         max_threads = self._get_max_threads(gpus)
 
         main_thread = threading.current_thread()
@@ -100,6 +106,7 @@ class Runner(object):
 
             config = self.run_configs.pop()
             config['gpu'] = gpu
+            config['framework'] = framework
 
             training = TrainingThread(thread_id, config, script_name)
             training.start()
@@ -131,15 +138,3 @@ class Runner(object):
 
         return max_threads
 
-    def _get_gpus(self, framework):
-        if framework == 'tf':
-            import tensorflow as tf
-            gpus = tf.config.list_physical_devices('GPU')
-        else:
-            raise TypeError("The supplied framework '{}' is not supported.".format(framework))
-
-        if len(gpus) < 1 and ('allow_cpu' not in self.meta or self.meta['allow_cpu'] is False):
-            raise ValueError(
-                "CPU processing is not enabled and could not find GPU devices to run on. If you want to enable CPU processing please update the config: { 'meta': { 'allow_cpu': true } }")
-
-        return gpus
