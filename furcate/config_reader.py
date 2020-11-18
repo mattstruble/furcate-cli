@@ -3,7 +3,7 @@ import copy
 
 class ConfigReader(object):
     # Bare minimum configuration keys required to run a default training fork
-    _REQUIRED_KEYS = ['data_dir', 'log_dir', 'batch_size', 'shuffle_buffer_size', 'epochs']
+    _REQUIRED_KEYS = ['data_name', 'data_dir', 'log_dir', 'batch_size', 'shuffle_buffer_size', 'epochs']
 
     def __init__(self, filename):
         self.data, self.meta_data = self._load_config(filename)
