@@ -94,8 +94,7 @@ class Fork(object):
             for metric in metrics:
                 self.plot_metric(log_dir, history.history, metric)
 
-    def preprocess(self, tfrecord):
-        raise NotImplementedError()
+
 
     def get_model(self):
         raise NotImplementedError()
@@ -119,14 +118,17 @@ class Fork(object):
         history = model.fit(train_set, epochs=epochs, validation_data=valid_set, callbacks=callbacks, verbose=verbose)
         return history
 
-    def train_preprocess(self, tfrecord):
-        return self.preprocess(tfrecord)
+    def preprocess(self, file):
+        raise NotImplementedError()
 
-    def test_preprocess(self, tfrecord):
-        return self.preprocess(tfrecord)
+    def train_preprocess(self, file):
+        return self.preprocess(file)
 
-    def valid_preprocess(self, tfrecord):
-        return self.preprocess(tfrecord)
+    def test_preprocess(self, file):
+        return self.preprocess(file)
+
+    def valid_preprocess(self, file):
+        return self.preprocess(file)
 
     def get_filepaths(self):
         train_filepaths = [os.path.join(self.data['data_dir'], x) for x in os.listdir(self.data['data_dir']) if x.startswith(self.data['train_tfrecord'])]
