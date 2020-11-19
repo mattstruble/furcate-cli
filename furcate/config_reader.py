@@ -9,10 +9,12 @@ import copy
 
 class ConfigReader(object):
     # Bare minimum configuration keys required to run a default training fork
-    _REQUIRED_KEYS = ['data_name', 'data_dir', 'batch_size', 'shuffle_buffer_size', 'epochs']
+    _REQUIRED_KEYS = ['data_name', 'data_dir', 'batch_size', 'epochs']
 
     def __init__(self, filename):
         self.data, self.meta_data = self._load_config(filename)
+        self._load_defaults()
+
         self.run_configs = []
 
     def gen_run_configs(self):
@@ -20,6 +22,18 @@ class ConfigReader(object):
             self._gen_run_configs(self.data)
 
         return self.run_configs
+
+    def _load_defaults(self):
+        self.data.setdefault('log_dir', 'logs')
+        self.data.setdefault('learning_rate', 0.001)
+        self.data.setdefault('verbose', 2)
+        self.data.setdefault('cache', False)
+        self.data.setdefault('seed', 42)
+        self.data.setdefault('prefetch', 1)
+
+        self.data.setdefault('train_tfrecord', self.data['data_name'] + ".train")
+        self.data.setdefault('test_tfrecord', self.data['data_name'] + ".test")
+        self.data.setdefault('valid_tfrecord', self.data['data_name'] + ".valid")
 
     def _load_config(self, config):
         with open(config) as f:
