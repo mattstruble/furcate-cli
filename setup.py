@@ -20,8 +20,17 @@ setup(
     license=license,
     packages=find_packages(exclude=('tests', 'docs', 'example')),
     classifiers=[
-        'Programming Language :: Python :: 3',
+        'Development Status :: 1 - Planning',
+        'Environment :: GPU',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
-        'Operating System :: OS Independent'
+        'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python :: 3',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'Topic :: Software Development :: Build Tools',
+        'Topic :: System :: Hardware :: Symmetric Multi-processing',
+        'Topic :: Utilities'
     ]
 )
