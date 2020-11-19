@@ -182,8 +182,8 @@ class Fork(object):
         # plt.gca().set_ylim(0,-1)# sets the vertical range within [0, -1]
         plt.title('Training and Validation ' + metric)
         plt.xlabel("Epochs")
-        plt.ylabel(metric)
-        plt.legend(["train_" + metric, 'val_' + metric])
+        plt.ylabel(metric.capitalize())
+        plt.legend(["train_" + metric.lower(), 'val_' + metric.lower()])
         plt.savefig(os.path.join(log_dir, metric + '.jpg'), bbox_inches='tight', dpi=150)
         plt.clf()
 
