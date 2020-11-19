@@ -19,10 +19,11 @@ class TrainingThread (threading.Thread):
     def __init__(self, id, config, script_name):
         threading.Thread.__init__(self)
         self.threadID = id
-        self.dir_name = os.path.basename(self.config['data_dir'])
-        self.name = self.dir_name + str(id)
         self.config = config
         self.script_name = script_name
+
+        self.dir_name = os.path.basename(self.config['data_dir'])
+        self.name = self.dir_name + str(id)
 
     def _gen_log_dir(self):
         folder = "{}_{}".format(self.name, self.dir_name)
@@ -126,7 +127,7 @@ class Runner(object):
 
 
     def _get_max_threads(self, gpus):
-        if 'max_threads' in self.meta:
+        if self.meta and 'max_threads' in self.meta:
             max_threads = min(1, self.meta['max_threads'])
 
             if max_threads > len(gpus) > 1:
