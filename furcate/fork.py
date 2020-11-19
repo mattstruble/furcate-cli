@@ -88,6 +88,9 @@ class Fork(object):
             log_dir = self.data['log_dir']
             model.save(os.path.join(log_dir, 'model.h5'))
 
+            if test_dataset:
+                print(self.model_evaluate(model, test_dataset))
+
             with open(os.path.join(log_dir, 'history.json'), 'w') as f:
                 json.dump(history.history, f)
 
@@ -117,6 +120,10 @@ class Fork(object):
     def model_fit(self, model, train_set, epochs, valid_set, callbacks, verbose):
         history = model.fit(train_set, epochs=epochs, validation_data=valid_set, callbacks=callbacks, verbose=verbose)
         return history
+
+    def model_evaluate(self, model, test_set):
+        results = model.evaluate(test_set)
+        return results
 
     def preprocess(self, file):
         raise NotImplementedError()
