@@ -34,7 +34,7 @@ class Fork(object):
             self.__setattr__(key, value)
 
     def _load_args(self):
-        parser = ArgumentParser
+        parser = ArgumentParser()
         parser.add_argument('--config', dest='config_path', default=None)
         parser.add_argument('--name', dest='thread_name', default=None)
         parser.add_argument('--gpu', dest='gpu_id', default=None)
@@ -48,18 +48,8 @@ class Fork(object):
             set_gpus(self.data['gpu'], self.data['framework'])
 
     def _load_defaults(self):
-        self.data.setdefault('log_dir', 'logs')
-        self.data.setdefault('learning_rate', 0.001)
-        self.data.setdefault('verbose', 2)
-        self.data.setdefault('cache', False)
         self.data.setdefault('num_parallel_reads', AUTOTUNE)
         self.data.setdefault('num_parallel_calls', AUTOTUNE)
-        self.data.setdefault('seed', 42)
-        self.data.setdefault('prefetch', 1)
-
-        self.data.setdefault('train_tfrecord', self.data['data_name'] + ".train")
-        self.data.setdefault('test_tfrecord', self.data['data_name'] + ".test")
-        self.data.setdefault('valid_tfrecord', self.data['data_name'] + ".valid")
 
     def is_runner(self):
         return self.args.config_path is None and self.args.thread_name is None \
