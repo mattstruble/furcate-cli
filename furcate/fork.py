@@ -29,6 +29,10 @@ class Fork(object):
             self.data = self.config.data
             self.meta = self.config.meta_data
 
+    def _set_attributes(self):
+        for key, value in self.data.items():
+            self.__setattr__(key, value)
+
     def _load_args(self):
         parser = ArgumentParser
         parser.add_argument('--config', dest='config_path', default=None)
@@ -50,7 +54,7 @@ class Fork(object):
         self.data.setdefault('cache', False)
         self.data.setdefault('num_parallel_reads', AUTOTUNE)
         self.data.setdefault('num_parallel_calls', AUTOTUNE)
-        self.data.setdefault('seed', None)
+        self.data.setdefault('seed', 42)
         self.data.setdefault('prefetch', 1)
 
         self.data.setdefault('train_tfrecord', self.data['data_name'] + ".train")
@@ -67,12 +71,14 @@ class Fork(object):
             runner.run(self.script_name)
         else:
             self._set_visible_gpus()
+            self._load_defaults()
+            self._set_attributes()
 
             train_fp, test_fp, valid_fp = self.get_filepaths()
             train_dataset, test_dataset, valid_dataset = self.get_datasets(train_fp, test_fp, valid_fp)
             model = self.get_model()
 
-            if self.data['verbose'] >= 1:
+            if self.verbose >= 1:
                 model.summary()
 
             metrics = self.get_metrics()
@@ -83,19 +89,19 @@ class Fork(object):
 
             callbacks = self.get_callbacks()
 
-            history = self.model_fit(model, train_dataset, self.data['epochs'], valid_dataset, callbacks, self.data['verbose'])
+            history = self.model_fit(model, train_dataset, self.epochs, valid_dataset, callbacks, self.verbose)
 
-            log_dir = self.data['log_dir']
-            model.save(os.path.join(log_dir, 'model.h5'))
+
+            model.save(os.path.join(self.log_dir, 'model.h5'))
 
             if test_dataset:
                 print(self.model_evaluate(model, test_dataset))
 
-            with open(os.path.join(log_dir, 'history.json'), 'w') as f:
+            with open(os.path.join(self.log_dir, 'history.json'), 'w') as f:
                 json.dump(history.history, f)
 
             for metric in metrics:
-                self.plot_metric(log_dir, history.history, metric)
+                self.plot_metric(self.log_dir, history.history, metric)
 
 
 
@@ -138,26 +144,26 @@ class Fork(object):
         return self.preprocess(file)
 
     def get_filepaths(self):
-        train_filepaths = [os.path.join(self.data['data_dir'], x) for x in os.listdir(self.data['data_dir']) if x.startswith(self.data['train_tfrecord'])]
-        test_filepaths = [os.path.join(self.data['data_dir'], x) for x in os.listdir(self.data['data_dir']) if x.startswith(self.data['test_tfrecord'])]
-        valid_filepaths = [os.path.join(self.data['data_dir'], x) for x in os.listdir(self.data['data_dir']) if x.startswith(self.data['valid_tfrecord'])]
+        train_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.train_tfrecord)]
+        test_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.test_tfrecord)]
+        valid_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.valid_tfrecord)]
 
         return train_filepaths, test_filepaths, valid_filepaths
 
     def gen_dataset(self, filepaths, processor=preprocess, shuffle_buffer_size=None):
-        dataset = tf.data.TFRecordDataset(filepaths, num_parallel_reads=self.data['num_parallel_reads'])
+        dataset = tf.data.TFRecordDataset(filepaths, num_parallel_reads=self.num_parallel_reads)
 
-        if self.data['cache']:
+        if self.cache:
             dataset = dataset.cache()
         if shuffle_buffer_size:
-            dataset = dataset.shuffle(buffer_size=shuffle_buffer_size, seed=self.data['seed'])
+            dataset = dataset.shuffle(buffer_size=shuffle_buffer_size, seed=self.seed)
 
-        dataset = dataset.map(processor, num_parallel_calls=self.data['num_parallel_calls']).batch(self.data['batch_size'])
+        dataset = dataset.map(processor, num_parallel_calls=self.num_parallel_calls).batch(self.batch_size)
 
-        return dataset.prefetch(self.data['prefetch'])
+        return dataset.prefetch(self.prefetch)
 
     def get_datasets(self, train_fp, test_fp, valid_fp):
-        train_set = self.gen_dataset(train_fp, shuffle_buffer_size=self.data['shuffle_buffer_size'], processor=self.train_preprocess)
+        train_set = self.gen_dataset(train_fp, shuffle_buffer_size=self.shuffle_buffer_size, processor=self.train_preprocess)
         test_set = self.gen_dataset(test_fp, processor=self.test_preprocess) if len(test_fp) > 0 else None
         valid_set = self.gen_dataset(valid_fp, processor=self.valid_preprocess) if len(valid_fp) > 0 else None
 
