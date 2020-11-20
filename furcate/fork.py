@@ -21,16 +21,17 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 logger = logging.getLogger(__name__)
 
+
 class Fork(object):
     date_format = '%Y-%m-%d %H:%M:%S'
 
     def __init__(self, config_filename):
         self._load_args()
 
-        if self.is_runner():
-            self.config = ConfigReader(config_filename)
-        else:
+        if self.args.config_path:
             self.config = ConfigReader(self.args.config_path)
+        else:
+            self.config = ConfigReader(config_filename)
 
             self.data = self.config.data
 
@@ -53,13 +54,12 @@ class Fork(object):
             set_gpus(self.data['gpu'], self.data['framework'])
 
     def _load_defaults(self):
-
         self.data.setdefault('num_parallel_reads', AUTOTUNE)
         self.data.setdefault('num_parallel_calls', AUTOTUNE)
 
     def is_runner(self):
-        return self.args.config_path is None and self.args.thread_name is None \
-               and self.args.gpu_id is None and self.args.thread_id is None
+        run_configs, _ = self.config.gen_run_configs()
+        return len(run_configs) > 1
 
     def run(self):
         logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format, level=logging.INFO)
