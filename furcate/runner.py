@@ -31,8 +31,9 @@ class TrainingThread (threading.Thread):
         for key in self.config.keys():
             if key not in self.config['meta']['ignore_log']:
                 short_key = ''.join([s[0] for s in key.split('_')])
-                value = str(self.config[key]).replace('.','-')
-                if value is not None:
+
+                if self.config[key] is not None:
+                    value = str(self.config[key]).replace('.','-')
                     folder += "_{}{}".format(short_key, value)
 
         self.config['log_dir'] = os.path.join(self.config['log_dir'], folder)
