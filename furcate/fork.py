@@ -49,11 +49,11 @@ class Fork(object):
         self.script_name = sys.argv[0]
 
     def _set_visible_gpus(self):
-        if 'gpu' in self.data and self.data['gpu']:
+        if self.data['gpu']:
             set_gpus(self.data['gpu'], self.meta['framework'])
 
     def _load_defaults(self):
-        self.data.setdefault('gpu', self.args.gpu)
+        self.data.setdefault('gpu', self.args.gpu_id)
 
     def is_runner(self):
         run_configs, _ = self.config.gen_run_configs()
@@ -268,6 +268,8 @@ class ForkTF(Fork):
         '''
         Sets num_parallel_reads and num_parallel_calls to tf.AUTOTUNE, and sets framework to tf.
         '''
+        super()._load_defaults()
+
         self.data.setdefault('num_parallel_reads', self.AUTOTUNE)
         self.data.setdefault('num_parallel_calls', self.AUTOTUNE)
         self.config.meta_data.setdefault('framework', 'tf')
