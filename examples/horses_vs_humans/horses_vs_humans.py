@@ -64,9 +64,6 @@ class App(furcate.ForkTF):
     def get_loss(self):
         return 'binary_crossentropy'
 
-    def get_filepaths(self):
-        return 'data/training', None, 'data/validation'
-
     def get_datasets(self, train_fp, test_fp, valid_fp):
         train_datagen = ImageDataGenerator(
             rescale=1. / 255,
@@ -82,14 +79,14 @@ class App(furcate.ForkTF):
         test_datagen = ImageDataGenerator(rescale=1. / 255)
 
         train_generator = train_datagen.flow_from_directory(
-            train_fp,
+            train_fp[0],
             batch_size=self.batch_size,
             target_size=(150, 150),
             class_mode='binary'
         )
 
         validation_generator = test_datagen.flow_from_directory(
-            valid_fp,
+            valid_fp[0],
             batch_size=self.batch_size,
             target_size=(150, 150),
             class_mode='binary'

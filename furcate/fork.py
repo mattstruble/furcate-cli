@@ -49,11 +49,11 @@ class Fork(object):
         self.script_name = sys.argv[0]
 
     def _set_visible_gpus(self):
-        if self.data['gpu']:
+        if 'gpu' in self.data and self.data['gpu']:
             set_gpus(self.data['gpu'], self.meta['framework'])
 
     def _load_defaults(self):
-        pass
+        self.data.setdefault('gpu', self.args.gpu)
 
     def is_runner(self):
         run_configs, _ = self.config.gen_run_configs()
@@ -214,18 +214,18 @@ class Fork(object):
         Gets the filepaths to the data that will then be processed by get_dataset.
         :return: train_filepaths, test_filepaths, valid_filepaths
         '''
-        train_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.train_record)]
-        test_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.test_record)]
-        valid_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.valid_record)]
+        train_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.train_prefix)]
+        test_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.test_prefix)]
+        valid_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.valid_prefix)]
 
         return train_filepaths, test_filepaths, valid_filepaths
 
     def get_datasets(self, train_fp, test_fp, valid_fp):
         '''
         Gets the datasets to be passed into the model for training and evaluation.
-        :param train_fp: Filepath to training data.
-        :param test_fp: Filepath to test data.
-        :param valid_fp: Filepath to validation data.
+        :param train_fp: List of filepaths of training data.
+        :param test_fp: List of filepaths of test data.
+        :param valid_fp: List of filepaths of validation data.
         :return: train_set, test_set, valid_set.
         '''
         raise NotImplementedError()

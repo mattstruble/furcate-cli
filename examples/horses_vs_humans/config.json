@@ -1,6 +1,8 @@
 {
   "data_name": "horses",
   "data_dir": "data",
+  "train_prefix": "training",
+  "valid_prefix": "validation",
   "batch_size": 20,
   "learning_rate": [0.01, 0.001, 0.0001],
   "epochs": [10, 20],
