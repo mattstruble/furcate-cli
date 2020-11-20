@@ -7,6 +7,7 @@
 import os
 import sys
 import json
+import logging
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from argparse import ArgumentParser
@@ -16,6 +17,8 @@ from .runner import Runner
 from .gpu_helper import set_gpus
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+logger = logging.getLogger(__name__)
 
 class Fork(object):
     def __init__(self, config_filename):
@@ -65,6 +68,8 @@ class Fork(object):
                and self.args.gpu_id is None and self.args.thread_id is None
 
     def run(self):
+        logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+
         if self.is_runner():
             runner = Runner(self.config)
             runner.run(self.script_name)
@@ -90,11 +95,10 @@ class Fork(object):
 
             history = self.model_fit(model, train_dataset, self.epochs, valid_dataset, callbacks, self.verbose)
 
-
             model.save(os.path.join(self.log_dir, 'model.h5'))
 
             if test_dataset:
-                print(self.model_evaluate(model, test_dataset))
+                logger.info(self.model_evaluate(model, test_dataset))
 
             with open(os.path.join(self.log_dir, 'history.json'), 'w') as f:
                 json.dump(history.history, f)
