@@ -17,7 +17,6 @@ from .config_reader import ConfigReader
 from .runner import Runner
 from .gpu_helper import set_gpus
 
-AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class Fork(object):
         else:
             self.config = ConfigReader(config_filename)
 
-            self.data = self.config.data
+        self.data = self.config.data
 
     def _set_attributes(self):
         for key, value in self.data.items():
@@ -51,11 +50,10 @@ class Fork(object):
 
     def _set_visible_gpus(self):
         if self.data['gpu']:
-            set_gpus(self.data['gpu'], self.data['framework'])
+            set_gpus(self.data['gpu'], self.meta['framework'])
 
     def _load_defaults(self):
-        self.data.setdefault('num_parallel_reads', AUTOTUNE)
-        self.data.setdefault('num_parallel_calls', AUTOTUNE)
+        pass
 
     def is_runner(self):
         run_configs, _ = self.config.gen_run_configs()
@@ -63,14 +61,14 @@ class Fork(object):
 
     def run(self):
         logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format, level=logging.INFO)
+        self._load_defaults()
 
         if self.is_runner():
             runner = Runner(self.config)
             runner.run(self.script_name)
         else:
-            self._set_visible_gpus()
-            self._load_defaults()
             self._set_attributes()
+            self._set_visible_gpus()
 
             start_time = datetime.now()
             self.meta['start_time'] = start_time.timestamp()
@@ -117,24 +115,159 @@ class Fork(object):
                 json.dump(self.data, f)
 
             for metric in metrics:
-                self.plot_metric(self.log_dir, history.history, metric)
+                self.plot_metric(history, metric)
 
 
 
-    def get_model(self):
+    def get_model(self) -> object:
+        '''
+        Builds the model for use during the training sequence.
+        :return: Deep learning model to be compiled and fit.
+        '''
         raise NotImplementedError()
 
     def get_callbacks(self):
+        '''
+        Returns a list of callbacks to pass to the model during the fit stage. Defaults to None.
+        '''
         return None
 
-    def get_metrics(self):
+    def get_metrics(self) -> list:
+        '''
+        Returns a list of metrics to pass to the model during the compile stage.
+        '''
         raise NotImplementedError()
 
-    def get_optimizer(self):
+    def get_optimizer(self) -> object:
+        '''
+        Returns the model optimizer for use in the compile stage.
+        '''
         raise NotImplementedError()
 
-    def get_loss(self):
+    def get_loss(self) -> object:
+        '''
+        Returns the loss function for use in the compile stage.
+        '''
         raise NotImplementedError()
+
+    def model_compile(self, model, optimizer, loss, metrics) -> object:
+        '''
+        Compiles the model for training
+        :param model: Model to be compiled
+        :param optimizer: Training optimizer
+        :param loss: Loss function to train against
+        :param metrics: Metrics to record
+        :return: Compiled model
+        '''
+        raise NotImplementedError()
+
+    def model_fit(self, model, train_set, epochs, valid_set, callbacks, verbose) -> object:
+        '''
+        Trains the compiled model and returns the history of training.
+        :param model: Model to train
+        :param train_set: Training dataset to fit against
+        :param epochs: Number of epochs to train
+        :param valid_set: Validation dataset
+        :param callbacks: A list of training callbacks
+        :param verbose: Verbosity of training
+        :return: History object representing the model training
+        '''
+        raise NotImplementedError()
+
+    def model_evaluate(self, model, test_set):
+        '''
+        Evaluates the model against the provided test set.
+        :param model: Model to evaluate
+        :param test_set: Dataset to test the model against
+        :return: Evaluation results
+        '''
+        raise NotImplementedError()
+
+    def preprocess(self, record):
+        '''
+        Preprocesses the data record into appropriate format for the model
+        :param record: Record information to preprocess
+        :return: Preprocessed dataset for model ingestion
+        '''
+        raise NotImplementedError()
+
+    def train_preprocess(self, record):
+        '''
+        Preprocessor specifically for training records. Defaults to preprocess.
+        '''
+        return self.preprocess(record)
+
+    def test_preprocess(self, record):
+        '''
+        Preprocessor specifically for test records. Defaults to preprocess.
+        '''
+        return self.preprocess(record)
+
+    def valid_preprocess(self, record):
+        '''
+        Preprocessor specifically for validation records. Defaults to preprocess.
+        '''
+        return self.preprocess(record)
+
+    def get_filepaths(self):
+        '''
+        Gets the filepaths to the data that will then be processed by get_dataset.
+        :return: train_filepaths, test_filepaths, valid_filepaths
+        '''
+        train_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.train_record)]
+        test_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.test_record)]
+        valid_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.valid_record)]
+
+        return train_filepaths, test_filepaths, valid_filepaths
+
+    def get_datasets(self, train_fp, test_fp, valid_fp):
+        '''
+        Gets the datasets to be passed into the model for training and evaluation.
+        :param train_fp: Filepath to training data.
+        :param test_fp: Filepath to test data.
+        :param valid_fp: Filepath to validation data.
+        :return: train_set, test_set, valid_set.
+        '''
+        raise NotImplementedError()
+
+    def plot(self, metric, epochs, train_metrics, val_metrics):
+        '''
+        Plots the specific metric validation and training metrics against epochs and saves the graph into the configured
+        log directory.
+
+        :param metric: String representation of the metric being plotted.
+        :param epochs: An array of each epoch the model performed [1..N]
+        :param train_metrics: Training values at each epoch step.
+        :param val_metrics: Validation values at each epoch step.
+        '''
+        plt.plot(epochs, train_metrics)
+        plt.plot(epochs, val_metrics)
+        # plt.gca().set_ylim(0,-1)# sets the vertical range within [0, -1]
+        plt.title('Training and Validation ' + metric)
+        plt.xlabel("Epochs")
+        plt.ylabel(metric.capitalize())
+        plt.legend(["train_" + metric.lower(), 'val_' + metric.lower()])
+        plt.savefig(os.path.join(self.log_dir, metric + '.jpg'), bbox_inches='tight', dpi=150)
+        plt.clf()
+
+    def plot_metric(self, history, metric):
+        '''
+        Takes the history object and the provided metric and graphs them using plot.
+        :param history: History of model training.
+        :param metric: Metric to plot.
+        '''
+        raise NotImplementedError()
+
+
+
+class ForkTF(Fork):
+    import tensorflow as tf
+    AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+    def _load_defaults(self):
+        self.data.setdefault('num_parallel_reads', self.AUTOTUNE)
+        self.data.setdefault('num_parallel_calls', self.AUTOTUNE)
+        self.config.meta_data.setdefault('framework', 'tf')
 
     def model_compile(self, model, optimizer, loss, metrics):
         model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
@@ -147,45 +280,7 @@ class Fork(object):
         results = model.evaluate(test_set)
         return results
 
-    def preprocess(self, file):
-        raise NotImplementedError()
-
-    def train_preprocess(self, file):
-        return self.preprocess(file)
-
-    def test_preprocess(self, file):
-        return self.preprocess(file)
-
-    def valid_preprocess(self, file):
-        return self.preprocess(file)
-
-    def get_filepaths(self):
-        train_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.train_tfrecord)]
-        test_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.test_tfrecord)]
-        valid_filepaths = [os.path.join(self.data_dir, x) for x in os.listdir(self.data_dir) if x.startswith(self.valid_tfrecord)]
-
-        return train_filepaths, test_filepaths, valid_filepaths
-
-    def gen_dataset(self, filepaths, processor=preprocess, shuffle_buffer_size=None):
-        dataset = tf.data.TFRecordDataset(filepaths, num_parallel_reads=self.num_parallel_reads)
-
-        if self.cache:
-            dataset = dataset.cache()
-        if shuffle_buffer_size:
-            dataset = dataset.shuffle(buffer_size=shuffle_buffer_size, seed=self.seed)
-
-        dataset = dataset.map(processor, num_parallel_calls=self.num_parallel_calls).batch(self.batch_size)
-
-        return dataset.prefetch(self.prefetch)
-
-    def get_datasets(self, train_fp, test_fp, valid_fp):
-        train_set = self.gen_dataset(train_fp, shuffle_buffer_size=self.shuffle_buffer_size, processor=self.train_preprocess)
-        test_set = self.gen_dataset(test_fp, processor=self.test_preprocess) if len(test_fp) > 0 else None
-        valid_set = self.gen_dataset(valid_fp, processor=self.valid_preprocess) if len(valid_fp) > 0 else None
-
-        return train_set, test_set, valid_set
-
-    def plot_metric(self, log_dir, history, metric):
+    def plot_metric(self, history, metric):
         if not isinstance(metric, str):
             try:
                 metric = metric.name
@@ -195,17 +290,8 @@ class Fork(object):
         if metric not in history:
             return
 
-        train_metrics = history[metric]
-        val_metrics = history['val_' + metric]
+        train_metrics = history.history[metric]
+        val_metrics = history.history['val_' + metric]
         epochs = range(1, len(train_metrics) + 1)
 
-        plt.plot(epochs, train_metrics)
-        plt.plot(epochs, val_metrics)
-        # plt.gca().set_ylim(0,-1)# sets the vertical range within [0, -1]
-        plt.title('Training and Validation ' + metric)
-        plt.xlabel("Epochs")
-        plt.ylabel(metric.capitalize())
-        plt.legend(["train_" + metric.lower(), 'val_' + metric.lower()])
-        plt.savefig(os.path.join(log_dir, metric + '.jpg'), bbox_inches='tight', dpi=150)
-        plt.clf()
-
+        self.plot(metric, epochs, train_metrics, val_metrics)

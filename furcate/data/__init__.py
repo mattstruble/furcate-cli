@@ -3,7 +3,6 @@
 # Use is subject to license terms.
 #
 # Author: Matt Struble
-# Date: Nov. 18 2020
+# Date: Nov. 20 2020
 
-from .fork import Fork, ForkTF
-from .data import data
+from .data import *

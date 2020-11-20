@@ -104,10 +104,10 @@ class Runner(object):
 
         self.run_configs, self.log_keys = self.config.gen_run_configs()
 
-    def run(self, script_name, framework='tf'):
-        gpus = get_gpus(framework)
+    def run(self, script_name):
+        gpus = get_gpus(self.meta['framework'])
 
-        if len(gpus) < 1 and ('allow_cpu' not in self.meta or self.meta['allow_cpu'] is False):
+        if len(gpus) < 1 and self.meta['allow_cpu'] is False:
             raise ValueError(
                 "CPU processing is not enabled and could not find GPU devices to run on. If you want to enable CPU processing please update the config: { 'meta': { 'allow_cpu': true } }")
 
@@ -153,7 +153,6 @@ class Runner(object):
 
             config = self.run_configs.pop()
             config['gpu'] = gpu
-            config['framework'] = framework
 
             training = TrainingThread(thread_id, config, script_name, self.log_keys)
             training.start()

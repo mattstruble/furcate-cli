@@ -33,9 +33,11 @@ class ConfigReader(object):
         self.data.setdefault('seed', 42)
         self.data.setdefault('prefetch', 1)
 
-        self.data.setdefault('train_tfrecord', self.data['data_name'] + ".train")
-        self.data.setdefault('test_tfrecord', self.data['data_name'] + ".test")
-        self.data.setdefault('valid_tfrecord', self.data['data_name'] + ".valid")
+        self.meta_data.setdefault('allow_cpu', False)
+
+        self.data.setdefault('train_prefix', self.data['data_name'] + ".train")
+        self.data.setdefault('test_prefix', self.data['data_name'] + ".test")
+        self.data.setdefault('valid_prefix', self.data['data_name'] + ".valid")
 
     def _load_config(self, config):
         with open(config) as f:
