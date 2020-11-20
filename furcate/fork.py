@@ -265,6 +265,9 @@ class ForkTF(Fork):
     AUTOTUNE = tf.data.experimental.AUTOTUNE
 
     def _load_defaults(self):
+        '''
+        Sets num_parallel_reads and num_parallel_calls to tf.AUTOTUNE, and sets framework to tf.
+        '''
         self.data.setdefault('num_parallel_reads', self.AUTOTUNE)
         self.data.setdefault('num_parallel_calls', self.AUTOTUNE)
         self.config.meta_data.setdefault('framework', 'tf')
