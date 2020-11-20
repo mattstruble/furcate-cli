@@ -62,7 +62,7 @@ class Fork(object):
                and self.args.gpu_id is None and self.args.thread_id is None
 
     def run(self):
-        logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format)
+        logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format, level=logging.INFO)
 
         if self.is_runner():
             runner = Runner(self.config)

@@ -9,6 +9,7 @@ import tempfile
 import subprocess
 import threading
 import time
+from datetime import datetime
 import json
 import logging
 
@@ -16,6 +17,24 @@ from .gpu_helper import get_gpus
 
 logger = logging.getLogger(__name__)
 
+def seconds_to_string(seconds):
+    day = seconds // (24 * 3600)
+    time = seconds % (24 * 3600)
+    hour = time // 3600
+    time %= 3600
+    minute = time // 60
+    seconds = time % 60
+
+    if day > 0:
+        res = "{}d {}h {}m {:.6f}s".format(day, hour, minute, seconds)
+    elif hour > 0:
+        res = "{}h {}m {:.6f}s".format(hour, minute, seconds)
+    elif minute > 0:
+        res = "{}m {:.6f}s".format(minute, seconds)
+    else:
+        res = "{:.6f}s".format(seconds)
+
+    return res
 
 class TrainingThread (threading.Thread):
 
@@ -55,6 +74,7 @@ class TrainingThread (threading.Thread):
     def run(self):
 
         fd, temppath = tempfile.mkstemp()
+        start_time = datetime.now()
 
         try:
             self._gen_log_dir()
@@ -72,6 +92,8 @@ class TrainingThread (threading.Thread):
 
         finally:
             os.remove(temppath)
+
+        self.run_time = datetime.now() - start_time
 
 
 class Runner(object):
@@ -97,24 +119,33 @@ class Runner(object):
 
         if max_threads > 1:
             gpu_idxs = list(range(len(gpus)))
+        else:
+            gpu_idxs = [None]
 
+        run_times = []
+        avg_seconds = 60
         while len(self.run_configs) > 0:
             while threading.activeCount() -1 == max_threads:
-                time.sleep(60)
+                time.sleep(max(1, min(60, int(avg_seconds))))
 
-            if max_threads > 1:
-                to_del = []
-                for t, gpu in gpu_mapping.items():
-                    if not t.isAlive():
-                        gpu_idxs.append(gpu)
-                        to_del.append(t)
+            to_del = []
+            for t, gpu in gpu_mapping.items():
+                if not t.isAlive():
+                    gpu_idxs.append(gpu)
+                    to_del.append(t)
 
-                for t in to_del:
-                    del gpu_mapping[t]
+                    run_times.append(t.run_time.total_seconds())
+                    avg_seconds = (sum(run_times) / len(run_times)) / max_threads
+                    thread_time = seconds_to_string(run_times[-1])
+                    remaining_time = seconds_to_string(avg_seconds*len(self.run_configs))
+                    logger.info("Thread %d finished - %s - est. total time remaining: %s",
+                                t.threadID, thread_time , remaining_time)
 
-                gpu = gpu_idxs.pop()
-            else:
-                gpu = None
+            for t in to_del:
+                del gpu_mapping[t]
+
+            gpu = gpu_idxs.pop()
+
 
             config = self.run_configs.pop()
             config['gpu'] = gpu
