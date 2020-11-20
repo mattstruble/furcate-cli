@@ -14,7 +14,6 @@ import json
 from .gpu_helper import get_gpus
 
 class TrainingThread (threading.Thread):
-    OS_LOCk = threading.Lock()
 
     def __init__(self, id, config, script_name):
         threading.Thread.__init__(self)
@@ -52,8 +51,7 @@ class TrainingThread (threading.Thread):
 
     def run(self):
 
-        with TrainingThread.OS_LOCk:
-            fd, temppath = tempfile.mkstemp()
+        fd, temppath = tempfile.mkstemp()
 
         try:
             self._gen_log_dir()
