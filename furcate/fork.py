@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import logging
+from datetime import datetime
 import tensorflow as tf
 import matplotlib.pyplot as plt
 from argparse import ArgumentParser
@@ -21,6 +22,8 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 logger = logging.getLogger(__name__)
 
 class Fork(object):
+    date_format = '%Y-%m-%d %H:%M:%S'
+
     def __init__(self, config_filename):
         self._load_args()
 
@@ -30,7 +33,6 @@ class Fork(object):
             self.config = ConfigReader(self.args.config_path)
 
             self.data = self.config.data
-            self.meta = self.config.meta_data
 
     def _set_attributes(self):
         for key, value in self.data.items():
@@ -68,7 +70,7 @@ class Fork(object):
                and self.args.gpu_id is None and self.args.thread_id is None
 
     def run(self):
-        logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format)
 
         if self.is_runner():
             runner = Runner(self.config)
@@ -77,6 +79,10 @@ class Fork(object):
             self._set_visible_gpus()
             self._load_defaults()
             self._set_attributes()
+
+            start_time = datetime.now()
+            self.meta['start_time'] = start_time.timestamp()
+            self.meta['start_time_string'] = start_time.strftime(self.date_format)
 
             tf.random.set_seed(self.seed)
 
@@ -99,11 +105,24 @@ class Fork(object):
 
             model.save(os.path.join(self.log_dir, 'model.h5'))
 
+            end_time = datetime.now()
+            self.meta['end_time'] = end_time.timestamp()
+            self.meta['end_time_string'] = end_time.strftime(self.date_format)
+
+            run_time = end_time - start_time
+            self.meta['run_time'] = run_time.total_seconds()
+            self.meta['run_time_string'] = str(run_time)
+
             if test_dataset:
-                logger.info(self.model_evaluate(model, test_dataset))
+                results = self.model_evaluate(model, test_dataset)
+                logger.info("Evaluation results: {}", results)
+                self.meta['results'] = results
 
             with open(os.path.join(self.log_dir, 'history.json'), 'w') as f:
                 json.dump(history.history, f)
+
+            with open(os.path.join(self.log_dir, 'run_data.json'), 'w') as f:
+                json.dump(self.data, f)
 
             for metric in metrics:
                 self.plot_metric(self.log_dir, history.history, metric)

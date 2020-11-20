@@ -35,9 +35,9 @@ class ConfigReader(object):
             if key not in data.keys():
                 raise ValueError("The configuration file '{}' does not contain the required key: {}".format(config, key))
 
-        meta_data = data.pop('meta', {})
+        data.setdefault('meta', {})
 
-        return data, meta_data
+        return data, data['meta']
 
     def _gen_config_permutations(self, index, dict, enumerated_data):
         if index >= len(enumerated_data):
@@ -68,6 +68,3 @@ class ConfigReader(object):
             }
 
         self.run_configs = self._gen_config_permutations(0, {}, enumerated_data)
-
-        for config in self.run_configs:
-            config['meta'] = copy.deepcopy(self.meta_data)
