@@ -6,4 +6,3 @@
 # Date: Nov. 18 2020
 
 from .fork import Fork, ForkTF
-from .data import data

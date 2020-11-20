@@ -280,6 +280,18 @@ class ForkTF(Fork):
         results = model.evaluate(test_set)
         return results
 
+    def gen_tfrecord_dataset(self, filepaths, processor, shuffle=False):
+        dataset = tf.data.TFRecordDataset(filepaths, num_parallel_reads=self.num_parallel_reads)
+
+        if self.cache:
+            dataset = dataset.cache()
+        if shuffle:
+            dataset = dataset.shuffle(buffer_size=self.shuffle_buffer_size, seed=self.seed)
+
+        dataset = dataset.map(processor, num_parallel_calls=self.num_parallel_calls).batch(self.batch_size)
+
+        return dataset.prefetch(self.prefetch)
+
     def plot_metric(self, history, metric):
         if not isinstance(metric, str):
             try:
