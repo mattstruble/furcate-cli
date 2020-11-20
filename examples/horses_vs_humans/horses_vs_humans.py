@@ -50,7 +50,7 @@ def build_cnn():
 class App(furcate.Fork):
 
     def get_model(self):
-        if self.model_name == 'inceptionV3':
+        if self.model_name == 'InceptionV3':
             return build_inceptionV3()
         else:
             return build_cnn()
