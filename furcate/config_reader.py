@@ -25,15 +25,6 @@ class ConfigReader(object):
 
     def _load_defaults(self):
         self.data.setdefault('log_dir', 'logs')
-        self.data.setdefault('learning_rate', 0.001)
-        self.data.setdefault('verbose', 2)
-        self.data.setdefault('cache', False)
-        self.data.setdefault('seed', 42)
-        self.data.setdefault('prefetch', 1)
-
-        self.data.setdefault('train_tfrecord', self.data['data_name'] + ".train")
-        self.data.setdefault('test_tfrecord', self.data['data_name'] + ".test")
-        self.data.setdefault('valid_tfrecord', self.data['data_name'] + ".valid")
 
     def _load_config(self, config):
         with open(config) as f:
