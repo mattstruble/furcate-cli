@@ -25,6 +25,7 @@ class ConfigReader(object):
 
     def _load_defaults(self):
         self.data.setdefault('log_dir', 'logs')
+        self.meta_data.setdefault('ignore_log', ['data_dir', 'meta', 'log_dir', 'data_name'])
 
     def _load_config(self, config):
         with open(config) as f:
@@ -34,7 +35,7 @@ class ConfigReader(object):
             if key not in data.keys():
                 raise ValueError("The configuration file '{}' does not contain the required key: {}".format(config, key))
 
-        meta_data = data.pop('meta', None)
+        meta_data = data.pop('meta', {})
 
         return data, meta_data
 
