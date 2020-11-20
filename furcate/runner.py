@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 
 def seconds_to_string(seconds):
     day = int(seconds // (24 * 3600))
-    time = seconds % (24 * 3600)
-    hour = int(time // 3600)
-    time %= 3600
-    minute = int(time // 60)
-    seconds = int(time % 60)
+    time_mod = seconds % (24 * 3600)
+    hour = int(time_mod // 3600)
+    time_mod %= 3600
+    minute = int(time_mod // 60)
+    seconds = int(time_mod % 60)
 
     if day > 0:
         res = "{}d {}h {}m {}s".format(day, hour, minute, seconds)
