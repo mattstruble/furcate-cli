@@ -10,8 +10,12 @@ import subprocess
 import threading
 import time
 import json
+import logging
 
 from .gpu_helper import get_gpus
+
+logger = logging.getLogger(__name__)
+
 
 class TrainingThread (threading.Thread):
 
@@ -61,7 +65,7 @@ class TrainingThread (threading.Thread):
 
             command = self._generate_run_command(temppath)
 
-            print('Starting:', os.getcwd(), command)
+            logger.info('Starting:', os.getcwd(), command)
 
             with open(os.path.join(self.config['log_dir'], self.name + '.log'), 'w', encoding='utf-8') as log, \
                 open(os.path.join(self.config['log_dir'], self.name + '.err'), 'w', encoding='utf-8') as err:
@@ -133,16 +137,16 @@ class Runner(object):
             max_threads = min(1, self.meta['max_threads'])
 
             if max_threads > len(gpus) > 1:
-                print(
+                logger.warning(
                     "Configured max_threads [{}] is higher than total number of GPUs [{}]. Defaulting to number of GPUs".format(
                         max_threads, len(gpus)))
                 max_threads = min(len(gpus), max_threads)
         else:
             max_threads = max(1, len(gpus))
-            print("Couldn't find max_threads in config, defaulting to [{}].".format(max_threads))
+            logger.warning("Couldn't find max_threads in config, defaulting to [{}].".format(max_threads))
 
         if len(gpus) > max_threads:
-            print(
+            logger.warning(
                 "Potentially not utilizing all the GPUs. Check the config to ensure the meta tag 'max_threads' is set properly: { 'meta': { 'max_threads': X } }")
 
         return max_threads
