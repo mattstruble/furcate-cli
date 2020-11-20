@@ -41,8 +41,11 @@ class TrainingThread (threading.Thread):
             os.makedirs(self.config['log_dir'])
 
     def _generate_run_command(self, config_path):
-        command = 'python3 {} --config "{}" --name "{}" --gpu "{}" --id "{}"'.format(
-            self.script_name, config_path, self.name, self.config['gpu'], self.threadID)
+        command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
+            self.script_name, config_path, self.name, self.threadID)
+
+        if self.config['gpu']:
+            command += ' --gpu "{}"'.format(self.config['gpu'])
 
         return command
 
