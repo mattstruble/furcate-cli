@@ -123,10 +123,14 @@ class Runner(object):
             gpu_idxs = [None]
 
         run_times = []
-        avg_seconds = 60
+        avg_seconds = 0
+        sleep_seconds = 60
         while len(self.run_configs) > 0:
             while threading.activeCount() -1 == max_threads:
-                time.sleep(max(1, min(60, int(avg_seconds))))
+                if 0 < avg_seconds < sleep_seconds:
+                    sleep_seconds = max(1, min(sleep_seconds, int(avg_seconds)))
+
+                time.sleep(sleep_seconds)
 
             to_del = []
             for t, gpu in gpu_mapping.items():
