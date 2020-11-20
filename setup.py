@@ -4,10 +4,10 @@ with open('README.md') as f:
     readme = f.read()
 
 with open('LICENSE') as f:
-    license = f.read
+    license = f.read()
 
 with open('VERSION') as f:
-    version = f.read
+    version = f.read()
 
 setup(
     name='furcate',
