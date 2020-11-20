@@ -78,6 +78,8 @@ class Fork(object):
             self._load_defaults()
             self._set_attributes()
 
+            tf.random.set_seed(self.seed)
+
             train_fp, test_fp, valid_fp = self.get_filepaths()
             train_dataset, test_dataset, valid_dataset = self.get_datasets(train_fp, test_fp, valid_fp)
             model = self.get_model()
