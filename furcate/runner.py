@@ -19,11 +19,12 @@ logger = logging.getLogger(__name__)
 
 class TrainingThread (threading.Thread):
 
-    def __init__(self, id, config, script_name):
+    def __init__(self, id, config, script_name, log_keys):
         threading.Thread.__init__(self)
         self.threadID = id
         self.config = config
         self.script_name = script_name
+        self.log_keys = log_keys
 
         self.dir_name = os.path.basename(self.config['data_dir'])
         self.name = self.dir_name + str(id)
@@ -32,12 +33,10 @@ class TrainingThread (threading.Thread):
         folder = "{}_{}".format(self.name, self.dir_name)
 
         for key in self.config.keys():
-            if key not in self.config['meta']['ignore_log']:
+            if key in self.log_keys:
                 short_key = ''.join([s[0] for s in key.split('_')])
-
-                if self.config[key] is not None:
-                    value = str(self.config[key]).replace('.','-')
-                    folder += "_{}{}".format(short_key, value)
+                value = str(self.config[key]).replace('.','-')
+                folder += "_{}{}".format(short_key, value)
 
         self.config['log_dir'] = os.path.join(self.config['log_dir'], folder)
 
@@ -65,7 +64,7 @@ class TrainingThread (threading.Thread):
 
             command = self._generate_run_command(temppath)
 
-            logger.info('Starting:', os.getcwd(), command)
+            logger.debug('Starting:', os.getcwd(), command)
 
             with open(os.path.join(self.config['log_dir'], self.name + '.log'), 'w', encoding='utf-8') as log, \
                 open(os.path.join(self.config['log_dir'], self.name + '.err'), 'w', encoding='utf-8') as err:
@@ -81,7 +80,7 @@ class Runner(object):
         self.config = config
         self.meta = config.meta_data
 
-        self.run_configs = self.config.gen_run_configs()
+        self.run_configs, self.log_keys = self.config.gen_run_configs()
 
     def run(self, script_name, framework='tf'):
         gpus = get_gpus(framework)
@@ -121,7 +120,7 @@ class Runner(object):
             config['gpu'] = gpu
             config['framework'] = framework
 
-            training = TrainingThread(thread_id, config, script_name)
+            training = TrainingThread(thread_id, config, script_name, self.log_keys)
             training.start()
 
             gpu_mapping[training] = gpu

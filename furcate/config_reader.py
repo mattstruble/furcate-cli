@@ -16,16 +16,26 @@ class ConfigReader(object):
         self._load_defaults()
 
         self.run_configs = []
+        self.permutable_keys = set()
 
     def gen_run_configs(self):
         if len(self.run_configs) == 0:
             self._gen_run_configs(self.data)
 
-        return self.run_configs
+        return self.run_configs, self.permutable_keys
 
     def _load_defaults(self):
         self.data.setdefault('log_dir', 'logs')
-        self.meta_data.setdefault('ignore_log', ['data_dir', 'meta', 'log_dir', 'data_name'])
+
+        self.data.setdefault('learning_rate', 0.001)
+        self.data.setdefault('verbose', 2)
+        self.data.setdefault('cache', False)
+        self.data.setdefault('seed', 42)
+        self.data.setdefault('prefetch', 1)
+
+        self.data.setdefault('train_tfrecord', self.data['data_name'] + ".train")
+        self.data.setdefault('test_tfrecord', self.data['data_name'] + ".test")
+        self.data.setdefault('valid_tfrecord', self.data['data_name'] + ".valid")
 
     def _load_config(self, config):
         with open(config) as f:
@@ -46,6 +56,7 @@ class ConfigReader(object):
         key = enumerated_data[index]['key']
 
         if type(enumerated_data[index]['value']) is list:
+            self.permutable_keys.add(key)
             values = enumerated_data[index]['value']
         else:
             values = [enumerated_data[index]['value']]
