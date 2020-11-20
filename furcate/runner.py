@@ -95,7 +95,7 @@ class Runner(object):
 
         while len(self.run_configs) > 0:
             while threading.activeCount() -1 == max_threads:
-                time.sleep(60*10)
+                time.sleep(60)
 
             if max_threads > 1:
                 to_del = []

@@ -18,7 +18,7 @@ setup(
     author_email='mattstruble@outlook.com',
     url='https://github.com/mattstruble/furcate',
     license=license,
-    packages=find_packages(exclude=('tests', 'docs', 'example')),
+    packages=find_packages(exclude=('tests', 'docs', 'examples')),
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: GPU',
