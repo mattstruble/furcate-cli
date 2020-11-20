@@ -18,21 +18,21 @@ from .gpu_helper import get_gpus
 logger = logging.getLogger(__name__)
 
 def seconds_to_string(seconds):
-    day = seconds // (24 * 3600)
+    day = int(seconds // (24 * 3600))
     time = seconds % (24 * 3600)
-    hour = time // 3600
+    hour = int(time // 3600)
     time %= 3600
-    minute = time // 60
-    seconds = time % 60
+    minute = int(time // 60)
+    seconds = int(time % 60)
 
     if day > 0:
-        res = "{}d {}h {}m {:.6f}s".format(day, hour, minute, seconds)
+        res = "{}d {}h {}m {}s".format(day, hour, minute, seconds)
     elif hour > 0:
-        res = "{}h {}m {:.6f}s".format(hour, minute, seconds)
+        res = "{}h {}m {}s".format(hour, minute, seconds)
     elif minute > 0:
-        res = "{}m {:.6f}s".format(minute, seconds)
+        res = "{}m {}s".format(minute, seconds)
     else:
-        res = "{:.6f}s".format(seconds)
+        res = "{}s".format(seconds)
 
     return res
 
