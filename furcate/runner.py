@@ -143,7 +143,7 @@ class Runner(object):
                 max_threads = min(len(gpus), max_threads)
         else:
             max_threads = max(1, len(gpus))
-            logger.warning("Couldn't find max_threads in config, defaulting to [{}].".format(max_threads))
+            logger.warning("Couldn't find max_threads in config, defaulting to number of GPUs [{}].".format(max_threads))
 
         if len(gpus) > max_threads:
             logger.warning(
