@@ -141,7 +141,7 @@ class Runner(object):
                     run_times.append(t.run_time.total_seconds())
                     avg_seconds = (sum(run_times) / len(run_times)) / max_threads
                     thread_time = seconds_to_string(run_times[-1])
-                    remaining_time = seconds_to_string(avg_seconds*len(self.run_configs))
+                    remaining_time = seconds_to_string(avg_seconds*(len(self.run_configs)+len(gpu_mapping)-1)+(sleep_seconds*len(self.run_configs)))
                     logger.info("Thread %d finished - %s - est. total time remaining: %s",
                                 t.threadID, thread_time , remaining_time)
 
