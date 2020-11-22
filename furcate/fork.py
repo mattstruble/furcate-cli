@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 from .config_reader import ConfigReader
-from .runner import Runner
+from .runner import Runner, seconds_to_string
 from .gpu_helper import set_gpus
 
 
@@ -101,7 +101,7 @@ class Fork(object):
 
             run_time = end_time - start_time
             self.meta['run_time'] = run_time.total_seconds()
-            self.meta['run_time_string'] = str(run_time)
+            self.meta['run_time_string'] = seconds_to_string(run_time.total_seconds())
 
             if test_dataset:
                 results = self.model_evaluate(model, test_dataset)
