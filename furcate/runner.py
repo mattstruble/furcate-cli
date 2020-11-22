@@ -12,8 +12,10 @@ import time
 from datetime import datetime
 import json
 import logging
+import pandas as pd
 
 from .gpu_helper import get_gpus
+from .config_reader import ConfigReader
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,22 @@ def seconds_to_string(seconds):
         res = "{}s".format(seconds)
 
     return res
+
+
+csv_lock = threading.Lock()
+def config_to_csv(config):
+    log_dir = os.path.dirname(config.data['log_dir'])
+    fname = os.path.join(log_dir, 'run_data.csv')
+
+    # Package metadata up to the data layer for writing to csv
+    for key, value in config.meta_data.items():
+        config.data[key] = value
+
+    config.data['meta'] = None
+
+    with csv_lock:
+        pd.DataFrame.from_dict(data=config.data).to_csv(fname, header=not os.path.exists(fname), mode='a', encoding='utf-8')
+
 
 class TrainingThread (threading.Thread):
 
@@ -89,6 +107,9 @@ class TrainingThread (threading.Thread):
             with open(os.path.join(self.config['log_dir'], self.name + '.log'), 'w', encoding='utf-8') as log, \
                 open(os.path.join(self.config['log_dir'], self.name + '.err'), 'w', encoding='utf-8') as err:
                 subprocess.call(command, shell=True, stdout=log, stderr=err)
+
+            run_config = ConfigReader(os.path.join(self.config['log_dir'], 'run_data.json'))
+            config_to_csv(run_config)
 
         finally:
             os.remove(temppath)
