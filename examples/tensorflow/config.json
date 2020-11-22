@@ -6,5 +6,8 @@
   "batch_size": 20,
   "learning_rate": [0.01, 0.001, 0.0001],
   "epochs": [10, 20],
-  "model_name": ["InceptionV3", "CNN"]
+  "model_name": ["InceptionV3", "CNN"],
+  "meta": {
+    "allow_cpu": true
+  }
 }
