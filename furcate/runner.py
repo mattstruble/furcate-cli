@@ -174,8 +174,8 @@ class Runner(object):
 
             gpu = gpu_idxs.pop()
 
-            config = self.run_configs.pop()
-            if config:
+            if len(self.run_configs) > 0:
+                config = self.run_configs.pop()
                 config['gpu'] = gpu
 
                 training = TrainingThread(thread_id, config, script_name, self.log_keys)
