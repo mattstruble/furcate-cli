@@ -70,9 +70,12 @@ class Fork(object):
             self._set_attributes()
             self._set_visible_gpus()
 
+            self.meta['data'] = {}
+            run_results = self.meta['data']
+
             start_time = datetime.now()
-            self.meta['start_time'] = start_time.timestamp()
-            self.meta['start_time_string'] = start_time.strftime(self.date_format)
+            run_results['start_time'] = start_time.timestamp()
+            run_results['start_time_string'] = start_time.strftime(self.date_format)
 
             tf.random.set_seed(self.seed)
 
@@ -96,17 +99,21 @@ class Fork(object):
             model.save(os.path.join(self.log_dir, 'model.h5'))
 
             end_time = datetime.now()
-            self.meta['end_time'] = end_time.timestamp()
-            self.meta['end_time_string'] = end_time.strftime(self.date_format)
+            run_results['end_time'] = end_time.timestamp()
+            run_results['end_time_string'] = end_time.strftime(self.date_format)
 
             run_time = end_time - start_time
-            self.meta['run_time'] = run_time.total_seconds()
-            self.meta['run_time_string'] = seconds_to_string(run_time.total_seconds())
+            run_results['run_time'] = run_time.total_seconds()
+            run_results['run_time_string'] = seconds_to_string(run_time.total_seconds())
 
             if test_dataset:
                 results = self.model_evaluate(model, test_dataset)
                 logger.info("Evaluation results: {}", results)
-                self.meta['results'] = results
+                run_results['results'] = results
+
+            for metric in metrics + ['loss']:
+                self.save_metric(run_results, history, metric)
+                self.plot_metric(history, metric)
 
             with open(os.path.join(self.log_dir, 'history.json'), 'w') as f:
                 json.dump(history.history, f)
@@ -114,8 +121,6 @@ class Fork(object):
             with open(os.path.join(self.log_dir, 'run_data.json'), 'w') as f:
                 json.dump(self.data, f)
 
-            for metric in metrics:
-                self.plot_metric(history, metric)
 
 
 
@@ -258,6 +263,15 @@ class Fork(object):
         '''
         raise NotImplementedError()
 
+    def save_metric(self, dict, history, metric):
+        '''
+        Takes the history object and the provided metric and stores the latest value into the provided dictionary.
+        :param dict: Dictionary to store the last metric value in.
+        :param history: History of model training.
+        :param metric: Metric to plot.
+        '''
+        raise NotImplementedError()
+
 
 
 class ForkTF(Fork):
@@ -297,18 +311,36 @@ class ForkTF(Fork):
 
         return dataset.prefetch(self.prefetch)
 
-    def plot_metric(self, history, metric):
+    def _get_metric(self, metric, history):
         if not isinstance(metric, str):
             try:
                 metric = metric.name
             except:
-                return
+                return None
 
         if metric not in history:
+            return None
+
+        return metric
+
+    def plot_metric(self, history, metric):
+        metric_name = self._get_metric(metric, history.history)
+        if metric_name is None:
             return
 
-        train_metrics = history.history[metric]
-        val_metrics = history.history['val_' + metric]
+        train_metrics = history.history[metric_name]
+        val_metrics = history.history['val_' + metric_name]
         epochs = range(1, len(train_metrics) + 1)
 
         self.plot(metric, epochs, train_metrics, val_metrics)
+
+    def save_metric(self, dict, history, metric):
+        metric_name = self._get_metric(metric, history.history)
+        if metric_name is None:
+            return
+
+        train_metrics = history.history[metric_name]
+        val_metrics = history.history['val_' + metric_name]
+
+        dict['train_'+metric_name] = train_metrics[-1]
+        dict['val_'+metric_name] = val_metrics[-1]
