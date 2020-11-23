@@ -149,8 +149,8 @@ class Runner(object):
         run_times = []
         avg_seconds = 0
         sleep_seconds = 60
-        while len(self.run_configs) > 0:
-            while threading.activeCount() -1 == max_threads:
+        while len(self.run_configs) > 0 or len(gpu_mapping) > 0:
+            while threading.activeCount() -1 == max_threads or (len(gpu_mapping) > 0 and threading.activeCount() -1 == len(gpu_mapping)):
                 if 0 < avg_seconds < sleep_seconds:
                     sleep_seconds = max(1, min(sleep_seconds, int(avg_seconds)))
 
@@ -174,15 +174,15 @@ class Runner(object):
 
             gpu = gpu_idxs.pop()
 
-
             config = self.run_configs.pop()
-            config['gpu'] = gpu
+            if config:
+                config['gpu'] = gpu
 
-            training = TrainingThread(thread_id, config, script_name, self.log_keys)
-            training.start()
+                training = TrainingThread(thread_id, config, script_name, self.log_keys)
+                training.start()
 
-            gpu_mapping[training] = gpu
-            thread_id += 1
+                gpu_mapping[training] = gpu
+                thread_id += 1
 
         for t in threading.enumerate():
             if t is not main_thread:
