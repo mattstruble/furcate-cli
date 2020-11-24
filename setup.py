@@ -20,7 +20,7 @@ setup(
     license=license,
     packages=find_packages(exclude=('tests', 'docs', 'examples')),
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Environment :: GPU',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
