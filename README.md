@@ -185,7 +185,7 @@ Below showcases the configuration with the required configuration keys, and any 
 }
 ```
 
-Any additional configurations can be defined and accessed within the Fork class.
+All configurations can be overwritten, and any additional configurations can be added.
 
 ## Roadmap 
 
