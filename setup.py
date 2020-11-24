@@ -19,6 +19,10 @@ setup(
     url='https://github.com/mattstruble/furcate',
     license=license,
     packages=find_packages(exclude=('tests', 'docs', 'examples')),
+    install_requires=[
+        'pandas',
+        'matplotlib'
+    ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: GPU',
