@@ -12,7 +12,7 @@ with open('VERSION') as f:
 setup(
     name='furcate',
     version=version,
-    description='A lightweight wrapper for automatically forking deep learning training sessions based on user configurations.',
+    description='A lightweight wrapper for automatically forking deep learning sessions to enable parallel model training across multiple GPUs.',
     long_description=readme,
     author='Matt Struble',
     author_email='mattstruble@outlook.com',

@@ -43,6 +43,7 @@ remaining number of configurations and the average run time across all completed
  dependent on the changing configurations. 
 ```
 logs/
+run_data.csv
 |-- data0_data_e20_mnCNN_lr0-0001/
     | -- accuracy.jpg
     | -- data0.err
