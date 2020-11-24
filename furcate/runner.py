@@ -137,6 +137,8 @@ class Runner(object):
 
         max_threads = self._get_max_threads(gpus)
 
+        logger.info("Generated %d unique combinations from configuration keys: %s", len(self.run_configs), str(self.log_keys))
+
         main_thread = threading.current_thread()
         thread_id = 0
         gpu_mapping = {}
