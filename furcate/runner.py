@@ -152,7 +152,7 @@ class Runner(object):
         avg_seconds = 0
         sleep_seconds = 60
         while len(self.run_configs) > 0 or len(gpu_mapping) > 0:
-            while threading.activeCount() -1 == max_threads or (len(gpu_mapping) > 0 and threading.activeCount() -1 == len(gpu_mapping)):
+            while threading.activeCount() -1 == max_threads or (len(gpu_mapping) > 0 and len(self.run_configs) == 0 and threading.activeCount() -1 == len(gpu_mapping)):
                 if 0 < avg_seconds < sleep_seconds:
                     sleep_seconds = max(1, min(sleep_seconds, int(avg_seconds)))
 
