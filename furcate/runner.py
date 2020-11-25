@@ -86,7 +86,7 @@ class TrainingThread (threading.Thread):
         command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
             self.script_name, config_path, self.name, self.threadID)
 
-        if self.config['gpu']:
+        if self.config['gpu'] is not None:
             command += ' --gpu "{}"'.format(self.config['gpu'])
 
         return command
