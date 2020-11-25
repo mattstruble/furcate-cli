@@ -90,17 +90,20 @@ class ConfigReader(object):
         skip_configs = self.meta_data['exclude_configs']
         if len(skip_configs) > 0:
             to_remove = []
-            for i in range(len(self.run_configs)):
-                run_config = self.run_configs[i]
-                remove = True
+            for run_config in self.run_configs:
+                matched = False
                 for config in skip_configs:
+                    matched = True
                     for key, value in config.items():
                         if run_config[key] != value:
-                            remove = False
+                            matched = False
                             break
 
-                if remove:
-                    to_remove.append(i)
+                    if matched:
+                        break
 
-            for idx in to_remove:
-                del self.run_configs[idx]
+                if matched:
+                    to_remove.append(run_config)
+
+            for remove in to_remove:
+                self.run_configs.remove(remove)
