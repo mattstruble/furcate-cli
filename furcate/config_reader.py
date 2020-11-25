@@ -6,6 +6,7 @@
 # Date: Nov. 18 2020
 import json
 import copy
+import random
 
 class ConfigReader(object):
     # Bare minimum configuration keys required to run a default training fork
@@ -22,6 +23,7 @@ class ConfigReader(object):
         if len(self.run_configs) == 0:
             self._gen_run_configs(self.data)
             self._clean_configs()
+            random.shuffle(self.run_configs)
 
         return self.run_configs, self.permutable_keys
 
