@@ -5,9 +5,13 @@
   "valid_prefix": "validation",
   "batch_size": 20,
   "learning_rate": [0.01, 0.001, 0.0001],
-  "epochs": [10, 20],
+  "epochs": [10, 20, 30],
   "model_name": ["InceptionV3", "CNN"],
   "meta": {
-    "allow_cpu": true
+    "allow_cpu": true,
+    "exclude_configs": [
+      { "model_name": "CNN", "epochs": 30 },
+      { "model_name": "InceptionV3", "epochs": 10 }
+    ]
   }
 }

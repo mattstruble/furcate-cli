@@ -21,6 +21,7 @@ class ConfigReader(object):
     def gen_run_configs(self):
         if len(self.run_configs) == 0:
             self._gen_run_configs(self.data)
+            self._clean_configs()
 
         return self.run_configs, self.permutable_keys
 
@@ -34,6 +35,7 @@ class ConfigReader(object):
         self.data.setdefault('prefetch', 1)
 
         self.meta_data.setdefault('allow_cpu', False)
+        self.meta_data.setdefault('exclude_configs', [])
 
         self.data.setdefault('train_prefix', self.data['data_name'] + ".train")
         self.data.setdefault('test_prefix', self.data['data_name'] + ".test")
@@ -81,3 +83,22 @@ class ConfigReader(object):
             }
 
         self.run_configs = self._gen_config_permutations(0, {}, enumerated_data)
+
+    def _clean_configs(self):
+        skip_configs = self.meta_data['exclude_configs']
+        if len(skip_configs) > 0:
+            to_remove = []
+            for i in range(len(self.run_configs)):
+                run_config = self.run_configs[i]
+                remove = True
+                for config in skip_configs:
+                    for key, value in config.items():
+                        if run_config[key] != value:
+                            remove = False
+                            break
+
+                if remove:
+                    to_remove.append(i)
+
+            for idx in to_remove:
+                del self.run_configs[idx]

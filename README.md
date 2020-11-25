@@ -179,13 +179,41 @@ Below showcases the configuration with the required configuration keys, and any 
   "prefetch"        # Int.    Defaults to: 1 
 
   "meta": {
-    "allow_cpu":    # Bool.   Defaults to: False
-    "max_threads":  # Int.    Defaults to: Number of CUDA GPUs
+    "allow_cpu":       # Bool.   Defaults to: False
+    "max_threads":     # Int.    Defaults to: Number of CUDA GPUs
+    "exclude_configs": # Array.  Defaults to: []
   }
 }
 ```
 
 All configurations can be overwritten, and any additional configurations can be added.
+
+#### meta.exclude_configs:
+
+`exclude_configs` expects an array of dictionary key-value pairs and excludes any config containing those pairs from 
+the generated configs. In the below example the final generated configs won't have any configuration in which both 
+`optimizer_name=Adadelta` and `batch_size=32`, or `optimizer_name=SGD` and `learning_rate=0.001`.
+
+```
+{
+  'data_name': "example", 
+  'data_dir': "foo/", 
+  'batch_size': [32, 64], 
+  'epochs': 50
+
+  "learning_rate": [0.0001, 0.001, 0.00001],
+  "optimizer_name": ["RMSProp", "SGD", "Adam", "Nadam", "Adadelta"],
+  "meta": {
+    "exclude_configs": [
+      { "optimizer_name": "Adadelta", "batch_size": 32 },
+      { "optimizer_name": "SGD", "learning_rate": 0.001 }
+    ]
+  }
+}
+```
+
+Every value in an `exclude_config` dictionary needs to be matched in order for a generated config to be excluded. 
+Therefore, a dictionary pairing will need to be created per unique combination to exclude.  
 
 ## Roadmap 
 
