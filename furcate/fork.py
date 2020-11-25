@@ -332,7 +332,7 @@ class ForkTF(Fork):
         val_metrics = history.history['val_' + metric_name]
         epochs = range(1, len(train_metrics) + 1)
 
-        self.plot(metric, epochs, train_metrics, val_metrics)
+        self.plot(metric_name, epochs, train_metrics, val_metrics)
 
     def save_metric(self, dict, history, metric):
         metric_name = self._get_metric(metric, history.history)
