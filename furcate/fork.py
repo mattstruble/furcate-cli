@@ -108,7 +108,7 @@ class Fork(object):
 
             if test_dataset:
                 results = self.model_evaluate(model, test_dataset)
-                logger.info("Evaluation results: {}", results)
+                logger.info("Evaluation results: %s", str(results))
                 run_results['results'] = results
 
             for metric in metrics + ['loss']:
