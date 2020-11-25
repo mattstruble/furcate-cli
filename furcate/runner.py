@@ -66,13 +66,13 @@ class TrainingThread (threading.Thread):
         self.log_keys = log_keys
 
         self.dir_name = os.path.basename(self.config['data_dir'])
-        self.name = self.dir_name + str(id)
+        self.name = self.config['data_name'] + str(id)
 
     def _gen_log_dir(self):
         folder = "{}_{}".format(self.name, self.dir_name)
 
         for key in self.config.keys():
-            if key in self.log_keys:
+            if key in self.log_keys and key not in ['data_dir']:
                 short_key = ''.join([s[0] for s in key.split('_')])
                 value = str(self.config[key]).replace('.','-')
                 folder += "_{}{}".format(short_key, value)
