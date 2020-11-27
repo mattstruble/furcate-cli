@@ -344,3 +344,4 @@ class ForkTF(Fork):
 
         dict['train_'+metric_name] = train_metrics[-1]
         dict['val_'+metric_name] = val_metrics[-1]
+        dict['epochs'] = len(val_metrics)
