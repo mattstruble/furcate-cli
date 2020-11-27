@@ -56,10 +56,71 @@ def config_to_csv(config):
         pd.DataFrame(config.data, index=[0]).to_csv(fname, header=not os.path.exists(fname), mode='a', encoding='utf-8', index=False)
 
 
+class ConfigUpdater(threading.Thread):
+    def __init__(self, config, refresh_rate=60):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+
+        self.config_path = config.filename
+        self.config = config
+        self.refresh_rate = refresh_rate
+        self.flagged = False
+
+        self._remove_completed_runs()
+
+        self._mtime = os.path.getmtime(self.config_path)
+        self._running = True
+        self._config_lock = threading.Lock()
+        self._event = threading.Event()
+
+    def run(self):
+        while self._running:
+            self._event.wait(self.refresh_rate)
+
+            if self._mtime != os.path.getmtime(self.config_path):
+                logger.info("Detected change in %s, reloading configurations.", self.config_path)
+                self._mtime = os.path.getmtime(self.config_path)
+                self.flagged = True
+
+                with self._config_lock:
+                    self.config = ConfigReader(self.config_path)
+                    self._remove_completed_runs()
+
+
+    def _remove_completed_runs(self):
+        run_configs, _ = self.config.gen_run_configs()
+        log_dir = run_configs[0]['log_dir']
+
+        if os.path.exists(os.path.join(log_dir, 'run_data.csv')):
+            df = pd.read_csv(os.path.join(log_dir, 'run_data.csv'))
+            logger.info("Detected previous runs, removing %d configuration(s).", len(df))
+            for _, row in df.iterrows():
+                run_dict = row.to_dict()
+                self.config.remove_completed_runs(run_dict)
+
+
+    def reset_flagged(self):
+        self.flagged = False
+
+    def get_config(self):
+        with self._config_lock:
+            config = self.config
+
+        return config
+
+    def stop(self):
+        logger.debug("Stopping ConfigUpdater")
+        self._running = False
+        self._event.set()
+
+
+
 class TrainingThread (threading.Thread):
 
     def __init__(self, id, config, script_name, log_keys):
         threading.Thread.__init__(self)
+        self.setDaemon(True)
+
         self.threadID = id
         self.config = config
         self.script_name = script_name
@@ -123,7 +184,8 @@ class TrainingThread (threading.Thread):
 class Runner(object):
 
     def __init__(self, config):
-        self.config = config
+        self.config_updater = ConfigUpdater(config)
+        self.config = self.config_updater.get_config()
         self.meta = config.meta_data
 
         self.run_configs, self.log_keys = self.config.gen_run_configs()
@@ -151,15 +213,29 @@ class Runner(object):
         run_times = []
         avg_seconds = 0
         sleep_seconds = 60
+
+        self.config_updater.start()
+
         while len(self.run_configs) > 0 or len(gpu_mapping) > 0:
-            while threading.activeCount() -1 == max_threads or (len(gpu_mapping) > 0 and len(self.run_configs) == 0 and threading.activeCount() -1 == len(gpu_mapping)):
+            while (len(gpu_mapping) == max_threads and all(t.isAlive() for t, _ in gpu_mapping.items())) or \
+                    (len(gpu_mapping) > 0 and len(self.run_configs) == 0 and all(t.isAlive() for t, _ in gpu_mapping.items())):
                 if 0 < avg_seconds < sleep_seconds:
                     sleep_seconds = max(1, min(sleep_seconds, int(avg_seconds)))
 
                 time.sleep(sleep_seconds)
 
+                if self.config_updater.flagged:
+                    self.config = self.config_updater.get_config()
+                    logger.debug("Config Updater Flagged")
+                    for t, (gpu, config) in gpu_mapping.items():
+                        logger.debug("Removing run: [%s]", str(config))
+                        self.config.remove_completed_runs(config)
+                        self.run_configs, _ = self.config.gen_run_configs()
+
+                    self.config_updater.reset_flagged()
+
             to_del = []
-            for t, gpu in gpu_mapping.items():
+            for t, (gpu, config) in gpu_mapping.items():
                 if not t.isAlive():
                     gpu_idxs.append(gpu)
                     to_del.append(t)
@@ -168,8 +244,8 @@ class Runner(object):
                     avg_seconds = (sum(run_times) / len(run_times)) / max_threads
                     thread_time = seconds_to_string(run_times[-1])
                     remaining_time = seconds_to_string(avg_seconds*(len(self.run_configs)+len(gpu_mapping)-1)+(sleep_seconds*len(self.run_configs)))
-                    logger.info("Thread %d finished - %s - est. total time remaining: %s",
-                                t.threadID, thread_time , remaining_time)
+                    logger.info("Thread %d finished - %s - %d configs remaining - est. total time remaining: %s",
+                                t.threadID, thread_time, len(self.run_configs), remaining_time)
 
             for t in to_del:
                 del gpu_mapping[t]
@@ -183,9 +259,10 @@ class Runner(object):
                 training = TrainingThread(thread_id, config, script_name, self.log_keys)
                 training.start()
 
-                gpu_mapping[training] = gpu
+                gpu_mapping[training] = (gpu, config)
                 thread_id += 1
 
+        self.config_updater.stop()
         for t in threading.enumerate():
             if t is not main_thread:
                 t.join()

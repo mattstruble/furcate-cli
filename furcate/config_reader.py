@@ -7,12 +7,15 @@
 import json
 import copy
 import random
+import logging
 
 class ConfigReader(object):
     # Bare minimum configuration keys required to run a default training fork
     _REQUIRED_KEYS = ['data_name', 'data_dir', 'batch_size', 'epochs']
+    logger = logging.getLogger(__name__)
 
     def __init__(self, filename):
+        self.filename = filename
         self.data, self.meta_data = self._load_config(filename)
         self._load_defaults()
 
@@ -86,6 +89,22 @@ class ConfigReader(object):
 
         self.run_configs = self._gen_config_permutations(0, {}, enumerated_data)
 
+    def remove_completed_runs(self, run_dict):
+        self.gen_run_configs()
+
+        for config in self.run_configs:
+            match = True
+            for key, value in config.items():
+                if key not in ['meta']:
+                    if run_dict[key] != value:
+                        match = False
+                        break
+
+            if match:
+                self.logger.debug("Removing previous run [%s] from run_configs", str(config))
+                self.run_configs.remove(config)
+                break
+
     def _clean_configs(self):
         skip_configs = self.meta_data['exclude_configs']
         if len(skip_configs) > 0:
@@ -105,5 +124,6 @@ class ConfigReader(object):
                 if matched:
                     to_remove.append(run_config)
 
+            self.logger.info("Removing %d excluded configs from run_configs", len(to_remove))
             for remove in to_remove:
                 self.run_configs.remove(remove)
