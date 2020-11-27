@@ -104,7 +104,7 @@ class TrainingThread (threading.Thread):
 
             command = self._generate_run_command(temppath)
 
-            logger.debug('Starting:', os.getcwd(), command)
+            logger.debug('Starting: %s', command)
 
             with open(os.path.join(self.config['log_dir'], self.name + '.log'), 'w', encoding='utf-8') as log, \
                 open(os.path.join(self.config['log_dir'], self.name + '.err'), 'w', encoding='utf-8') as err:
