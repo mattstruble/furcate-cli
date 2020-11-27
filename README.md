@@ -43,6 +43,17 @@ if __name__=="__main__":
     app.run()
 ```
 
+#### Persistence 
+
+Furcate offers persistence between runs by saving configuration and run outputs to `[log_dir]/run_data.csv`. If Furcate
+detects this file on startup it will ignore any already existing runs when going through the configuration permuatations.
+
+#### Live Updates 
+
+While running Furcate periodically checks the configuration file for any changes. If any changes are detected Furcate 
+will automatically recalculate the permutations while making sure to exclude already completed calculations. This can be
+used to add, or remove, permutations without needing to restart Furcate.  
+
 ## Output 
 
 Furcate will create a folder within the log directory per configuration, containing all of the thread's output, 
