@@ -53,7 +53,10 @@ def config_to_csv(config):
     config.data['meta'] = str(config.data['meta'])
 
     with csv_lock:
-        pd.DataFrame(config.data, index=[0]).to_csv(fname, header=not os.path.exists(fname), mode='a', encoding='utf-8', index=False)
+        csv_df = pd.read_csv(fname)
+        csv_df = csv_df.append(config.data, ignore_index=True)
+
+        csv_df.to_csv(fname, header=not os.path.exists(fname), mode='w', encoding='utf-8', index=False)
 
 
 class ConfigUpdater(threading.Thread):
