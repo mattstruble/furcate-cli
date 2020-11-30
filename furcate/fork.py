@@ -42,14 +42,14 @@ class Fork(object):
         parser = ArgumentParser()
         parser.add_argument('--config', dest='config_path', default=None)
         parser.add_argument('--name', dest='thread_name', default=None)
-        parser.add_argument('--gpu', dest='gpu_id', default=None)
+        parser.add_argument('--gpu', dest='gpu_id', default=-1)
         parser.add_argument('--id', dest='thread_id', default=None)
 
         self.args = parser.parse_args()
         self.script_name = sys.argv[0]
 
     def _set_visible_gpus(self):
-        if self.data['gpu']:
+        if self.data['gpu'] > -1:
             set_gpus(self.data['gpu'], self.meta['framework'])
 
     def _load_defaults(self):

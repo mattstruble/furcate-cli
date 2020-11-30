@@ -208,7 +208,7 @@ class Runner(object):
         if max_threads > 1:
             gpu_idxs = list(range(len(gpus)))
         else:
-            gpu_idxs = [None]
+            gpu_idxs = [-1]
 
         run_times = []
         avg_seconds = 0
@@ -249,6 +249,8 @@ class Runner(object):
 
             for t in to_del:
                 del gpu_mapping[t]
+
+            to_del.clear()
 
             gpu = gpu_idxs.pop()
 
