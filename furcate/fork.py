@@ -8,6 +8,8 @@ import os
 import sys
 import json
 import logging
+import logging.config
+
 from datetime import datetime
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -44,6 +46,7 @@ class Fork(object):
         parser.add_argument('--name', dest='thread_name', default=None)
         parser.add_argument('--gpu', dest='gpu_id', default=-1)
         parser.add_argument('--id', dest='thread_id', default=None)
+        parser.add_argument('--log_config', dest='log_config', default=None)
 
         self.args = parser.parse_args()
         self.script_name = sys.argv[0]
@@ -55,13 +58,29 @@ class Fork(object):
     def _load_defaults(self):
         self.data.setdefault('gpu', self.args.gpu_id)
 
+    def _load_logging_config(self):
+        if not self.args.log_config:
+            log_fname = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config', 'logging.config')
+        else:
+            log_fname = self.args.log_config
+
+        try:
+            with open(log_fname,'r') as f:
+                data = json.load(f)
+            logging.config.dictConfig(data)
+        except Exception as e:
+            logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format,
+                                level=logging.DEBUG)
+            logger.warning(e)
+
     def is_runner(self):
         run_configs, _ = self.config.gen_run_configs()
         return len(run_configs) > 1
 
+
     def run(self):
-        logging.basicConfig(format='%(asctime)s.%(msecs)06d: %(name)s] %(message)s', datefmt=self.date_format, level=logging.INFO)
         self._load_defaults()
+        self._load_logging_config()
 
         if self.is_runner():
             runner = Runner(self.config)
