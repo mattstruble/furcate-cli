@@ -16,7 +16,7 @@ import pandas as pd
 import tracemalloc
 import gc
 
-from .gpu_helper import get_gpus
+from .gpu_helper import get_gpus, get_gpu_stats
 from .config_reader import ConfigReader
 
 logger = logging.getLogger(__name__)
@@ -100,9 +100,9 @@ class MemoryTrace(threading.Thread):
 
             while self._running:
                 self._event.wait(self.delay)
-                self.snapshot("Periodic snapshot")
+                self.snapshot()
 
-    def snapshot(self, title=None):
+    def snapshot(self, title="Snapshot"):
         if self.enabled:
             with self._snapshot_lock:
                 current = tracemalloc.take_snapshot()
@@ -115,6 +115,10 @@ class MemoryTrace(threading.Thread):
 
                 # compare current snapshot to previous snapshot
                 prev_stats = current.compare_to(self._prev_stats, 'lineno')
+
+                logger.debug("GPU Stats")
+                for gpu in get_gpu_stats():
+                    logger.debug("{} {}: {}/{}, {} Volatile GPU-Util, {}C".format(gpu.id, gpu.name, gpu.memory_used, gpu.memory_total, gpu.util, gpu.temperature))
 
                 logger.debug('Top Diffs since Start')
                 for i, stat in enumerate(stats[:self.top], 1):
