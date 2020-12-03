@@ -9,6 +9,8 @@ import sys
 import json
 import logging
 import logging.config
+import numpy as np
+import random
 
 from datetime import datetime
 import tensorflow as tf
@@ -39,6 +41,9 @@ class Fork(object):
     def _set_attributes(self):
         for key, value in self.data.items():
             self.__setattr__(key, value)
+
+        np.random.seed(self.data['seed'])
+        random.seed(self.data['seed'])
 
     def _load_args(self):
         parser = ArgumentParser()
@@ -306,6 +311,10 @@ class ForkTF(Fork):
         self.data.setdefault('num_parallel_reads', self.AUTOTUNE)
         self.data.setdefault('num_parallel_calls', self.AUTOTUNE)
         self.config.meta_data.setdefault('framework', 'tf')
+
+    def _set_attributes(self):
+        super()._set_attributes()
+        tf.random.set_seed(self.data['seed'])
 
     def model_compile(self, model, optimizer, loss, metrics):
         model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
