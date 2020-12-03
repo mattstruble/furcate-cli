@@ -13,11 +13,11 @@ class GPU:
     def __init__(self, id, uuid, util, memory_total, memory_used, memory_free, driver, gpu_name, serial, display_mode, display_active, temp_gpu):
         self.id = id
         self.uuid = uuid
-        self.util = util.replace(' ', '')
+        self.util = util
         self.memory_util = float(memory_used.split(' ')[0])/float(memory_total.split(' ')[0])
-        self.memory_total = memory_total.replace(' ', '')
-        self.memory_used = memory_used.replace(' ', '')
-        self.memory_free = memory_free.replace(' ', '')
+        self.memory_total = memory_total
+        self.memory_used = memory_used
+        self.memory_free = memory_free
         self.driver = driver
         self.name = gpu_name
         self.serial = serial

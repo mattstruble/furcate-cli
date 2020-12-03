@@ -118,7 +118,7 @@ class MemoryTrace(threading.Thread):
 
                 logger.debug("GPU Stats")
                 for gpu in get_gpu_stats():
-                    logger.debug("{} {}: {}/{}, {} Volatile GPU-Util, {}C".format(gpu.id, gpu.name, gpu.memory_used, gpu.memory_total, gpu.util, gpu.temperature))
+                    logger.debug("gpu_stats id={}, name={}, mem_used={}, mem_total={}, mem_util={} %, volatile_gpu={}, temp={} C".format(gpu.id, gpu.name, gpu.memory_used, gpu.memory_total, int(gpu.memory_util * 100), gpu.util, gpu.temperature))
 
                 logger.debug('Top Diffs since Start')
                 for i, stat in enumerate(stats[:self.top], 1):
