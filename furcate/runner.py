@@ -13,6 +13,8 @@ from datetime import datetime
 import json
 import logging
 import pandas as pd
+import tracemalloc
+import gc
 
 from .gpu_helper import get_gpus
 from .config_reader import ConfigReader
@@ -56,8 +58,88 @@ def config_to_csv(config):
         csv_df = pd.read_csv(fname)
         csv_df = csv_df.append(config.data, ignore_index=True)
 
-        csv_df.to_csv(fname, header=not os.path.exists(fname), mode='w', encoding='utf-8', index=False)
+        csv_df.to_csv(fname, header=True, mode='w', encoding='utf-8', index=False)
 
+class MemoryTrace(threading.Thread):
+    # https://tech.buzzfeed.com/finding-and-fixing-memory-leaks-in-python-413ce4266e7d
+
+    def __init__(self, enabled, delay=300, top=10, trace=1):
+        """
+            Log memory usage on a delay.
+
+            :param delay: in seconds (int)
+            :param top: number of top allocations to list (int)
+            :param trace: number of top allocations to trace (int)
+            :return: None
+        """
+        super().__init__()
+
+        self.enabled = enabled
+        self.delay = delay
+        self.top = top
+        self.trace = trace
+
+        self.setDaemon(True)
+        self._event = threading.Event()
+
+        self._running = False
+        self._start_stats = None
+        self._prev_stats = None
+        self._snapshot_lock = threading.Lock()
+
+        self.start()
+
+    def run(self):
+        if self.enabled:
+            self._running = True
+
+            logger.debug('Starting MemoryTrace')
+            tracemalloc.start(25)
+            self._start_stats = tracemalloc.take_snapshot()
+            self._prev_stats = self._start_stats
+
+            while self._running:
+                self._event.wait(self.delay)
+                self.snapshot("Periodic snapshot")
+
+    def snapshot(self, title=None):
+        if self.enabled:
+            with self._snapshot_lock:
+                current = tracemalloc.take_snapshot()
+
+                if title:
+                    logger.debug("------ %s ------", title)
+
+                # compare current snapshot to starting snapshot
+                stats = current.compare_to(self._start_stats, 'filename')
+
+                # compare current snapshot to previous snapshot
+                prev_stats = current.compare_to(self._prev_stats, 'lineno')
+
+                logger.debug('Top Diffs since Start')
+                for i, stat in enumerate(stats[:self.top], 1):
+                    logger.debug('top_diffs i=%d, stat=%s', i, str(stat))
+
+                logger.debug('Top Incremental')
+                for i, stat in enumerate(prev_stats[:self.top], 1):
+                    logger.debug('top_incremental i=%d, stat=%s', i, str(stat))
+
+                logger.debug('Top Current')
+                for i, stat in enumerate(current.statistics('filename')[:self.top], 1):
+                    logger.debug('top_current i=%d, stat=%s', i, str(stat))
+
+                traces = current.statistics('traceback')
+                for stat in traces[:self.trace]:
+                    logger.debug('traceback memory_blocks=%d, size_kB=%d', stat.count, stat.size / 1024)
+                    for line in stat.traceback.format():
+                        logger.debug(line)
+
+                self._prev_stats = current
+
+    def stop(self):
+        logger.debug("Stopping MemoryTrace")
+        self._running = False
+        self._event.set()
 
 class ConfigUpdater(threading.Thread):
     def __init__(self, config, refresh_rate=60):
@@ -194,6 +276,8 @@ class Runner(object):
         self.run_configs, self.log_keys = self.config.gen_run_configs()
 
     def run(self, script_name):
+        mem_trace = MemoryTrace(self.meta['mem_trace'])
+
         gpus = get_gpus(self.meta['framework'])
 
         if len(gpus) < 1 and self.meta['allow_cpu'] is False:
@@ -250,10 +334,14 @@ class Runner(object):
                     logger.info("Thread %d finished - %s - %d configs remaining - est. total time remaining: %s",
                                 t.threadID, thread_time, len(self.run_configs), remaining_time)
 
-            for t in to_del:
-                del gpu_mapping[t]
+            if len(to_del) > 0:
+                mem_trace.snapshot("Prior to deleting threads [{}]".format(str(to_del)))
+                for t in to_del:
+                    del gpu_mapping[t]
 
-            to_del.clear()
+                to_del.clear()
+                gc.collect()
+                mem_trace.snapshot("After deleting threads".format(str(to_del)))
 
             gpu = gpu_idxs.pop()
 
@@ -267,7 +355,10 @@ class Runner(object):
                 gpu_mapping[training] = (gpu, config)
                 thread_id += 1
 
+                mem_trace.snapshot("Started thread {}: [{}]".format(thread_id, str(config)))
+
         self.config_updater.stop()
+        mem_trace.stop()
         for t in threading.enumerate():
             if t is not main_thread:
                 t.join()

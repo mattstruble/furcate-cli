@@ -41,6 +41,7 @@ class ConfigReader(object):
 
         self.meta_data.setdefault('allow_cpu', False)
         self.meta_data.setdefault('exclude_configs', [])
+        self.meta_data.setdefault('mem_trace', False)
 
         self.data.setdefault('train_prefix', self.data['data_name'] + ".train")
         self.data.setdefault('test_prefix', self.data['data_name'] + ".test")
