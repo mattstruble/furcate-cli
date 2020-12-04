@@ -55,8 +55,11 @@ def config_to_csv(config):
     config.data['meta'] = str(config.data['meta'])
 
     with csv_lock:
-        csv_df = pd.read_csv(fname)
-        csv_df = csv_df.append(config.data, ignore_index=True)
+        if os.path.exists(fname):
+            csv_df = pd.read_csv(fname)
+            csv_df = csv_df.append(config.data, ignore_index=True)
+        else:
+            csv_df = pd.DataFrame.from_dict(config.data)
 
         csv_df.to_csv(fname, header=True, mode='w', encoding='utf-8', index=False)
 
