@@ -108,7 +108,7 @@ class ConfigReader(object):
 
     def _clean_configs(self):
         skip_configs = self.meta_data['exclude_configs']
-        if len(skip_configs) > 0:
+        if len(skip_configs) > 0 and len(self.run_configs) > 1:
             to_remove = []
             for run_config in self.run_configs:
                 matched = False
@@ -125,6 +125,7 @@ class ConfigReader(object):
                 if matched:
                     to_remove.append(run_config)
 
-            self.logger.info("Removing %d excluded configs from run_configs", len(to_remove))
-            for remove in to_remove:
-                self.run_configs.remove(remove)
+            if len(to_remove) > 0:
+                self.logger.info("Excluding %d configs matching configured 'exclude_configs'", len(to_remove))
+                for remove in to_remove:
+                    self.run_configs.remove(remove)
