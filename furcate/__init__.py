@@ -13,9 +13,6 @@ for module in modules:
     try:
         lib = import_module(module)
     except ImportError:
-        import sys
-
-        print(sys.exc_info())
         pass
     else:
         globals()["Fork"] = lib.Fork
