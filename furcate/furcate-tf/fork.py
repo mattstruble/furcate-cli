@@ -2,11 +2,11 @@ import os
 
 import furcate.fork
 
-# import tensorflow as tf
+import tensorflow as tf
 
 
 class Fork(furcate.fork.Fork):
-    # AUTOTUNE = tf.data.experimental.AUTOTUNE
+    AUTOTUNE = tf.data.experimental.AUTOTUNE
 
     @property
     def num_parallel_reads(self):
@@ -54,10 +54,9 @@ class Fork(furcate.fork.Fork):
         model.save(os.path.join(self.log_dir, "model.h5"))
 
     def gen_tfrecord_dataset(self, filepaths, processor, shuffle=False):
-        dataset = []
-        # dataset = tf.data.TFRecordDataset(
-        #     filepaths, num_parallel_reads=self.num_parallel_reads
-        # )
+        dataset = tf.data.TFRecordDataset(
+            filepaths, num_parallel_reads=self.num_parallel_reads
+        )
 
         if self.cache:
             dataset = dataset.cache()
