@@ -4,5 +4,17 @@
 #
 # Author: Matt Struble
 # Date: Nov. 18 2020
+from importlib import import_module
 
-from .fork import Fork, ForkTF # noqa: F401
+modules = ["furcate.fork", "furcate.furcate-tf.fork"]
+
+for module in modules:
+    print(module)
+    try:
+        lib = import_module(module)
+    except ImportError:
+        import sys
+        print(sys.exc_info())
+        pass
+    else:
+        globals()["Fork"] = lib.Fork

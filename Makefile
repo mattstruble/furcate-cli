@@ -13,6 +13,9 @@ clean:
 build:
     python setup.py install
 
+build-tf:
+    python setup.py install tf
+
 test:
 	python -m unittest discover tests
 

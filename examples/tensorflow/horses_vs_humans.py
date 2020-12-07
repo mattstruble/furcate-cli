@@ -52,7 +52,7 @@ def build_cnn():
     return model
 
 
-class App(furcate.ForkTF):
+class App(furcate.Fork):
     def get_model(self):
         if self.model_name == "InceptionV3":
             return build_inceptionV3()
