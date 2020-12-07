@@ -167,7 +167,9 @@ class Fork(object):
 
             run_time = end_time - start_time
             run_results["total_time"] = run_time.total_seconds()
-            run_results["total_time_string"] = seconds_to_string(run_time.total_seconds())
+            run_results["total_time_string"] = seconds_to_string(
+                run_time.total_seconds()
+            )
 
             if test_dataset:
                 results = self.model_evaluate(model, test_dataset)
@@ -198,7 +200,7 @@ class Fork(object):
         Uses self.gpu_id in order to restrict the training sessions visible GPUs.
         :return: None
         """
-        raise NotImplementedError()
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu_id)
 
     def model_summary(self, model):
         """
