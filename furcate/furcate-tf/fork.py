@@ -6,8 +6,10 @@
 # Date: Dec. 07 2020
 import os
 import re
-import furcate.fork
+
 import tensorflow as tf
+
+import furcate.fork
 
 
 class Fork(furcate.fork.Fork):
@@ -37,7 +39,7 @@ class Fork(furcate.fork.Fork):
 
     def get_available_gpu_indices(self):
         gpus = tf.config.list_physical_devices("GPU")
-        indices =  [int(re.findall(r"\d+", gpu.name)[0]) for gpu in gpus]
+        indices = [int(re.findall(r"\d+", gpu.name)[0]) for gpu in gpus]
         return indices
 
     def set_visible_gpus(self):
