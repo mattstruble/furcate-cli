@@ -8,7 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
       - uses: psf/black@stable
       - uses: isort/isort-action@v0.1.0
+      - uses: suo/flake8-github-action@v1
