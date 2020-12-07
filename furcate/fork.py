@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .config_reader import ConfigReader
-from .gpu_helper import set_gpus
+from .gpu_helper import get_gpu_stats
 from .runner import Runner, seconds_to_string
 
 logger = logging.getLogger(__name__)
@@ -88,10 +88,6 @@ class Fork(object):
         self.args = parser.parse_args()
         self.script_name = sys.argv[0]
 
-    def _set_visible_gpus(self):
-        if self.gpu_id > -1:
-            set_gpus(self.gpu_id, self.meta["framework"])
-
     def _load_defaults(self):
         self.data.setdefault("gpu_id", self.args.gpu_id)
 
@@ -125,10 +121,10 @@ class Fork(object):
 
         if self.is_runner():
             runner = Runner(self.config)
-            runner.run(self.script_name)
+            runner.run(self.script_name, gpu_indices=self.get_available_gpu_indices())
         else:
             self._set_seed()
-            self._set_visible_gpus()
+            self.set_visible_gpus()
 
             self.meta["data"] = {}
             run_results = self.meta["data"]
@@ -187,6 +183,22 @@ class Fork(object):
 
             with open(os.path.join(self.log_dir, "run_data.json"), "w") as f:
                 json.dump(self.data, f)
+
+    def get_available_gpu_indices(self):
+        """
+        Gets a list of available GPUs indices to train on. Defaults to using nvidia-smi.
+        :return: List of available GPUs.
+        """
+        gpus = get_gpu_stats()
+        indices = [gpu.id for gpu in gpus]
+        return indices
+
+    def set_visible_gpus(self):
+        """
+        Uses self.gpu_id in order to restrict the training sessions visible GPUs.
+        :return: None
+        """
+        raise NotImplementedError()
 
     def model_summary(self, model):
         """

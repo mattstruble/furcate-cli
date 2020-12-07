@@ -18,7 +18,7 @@ from datetime import datetime
 import pandas as pd
 
 from .config_reader import ConfigReader
-from .gpu_helper import get_gpu_stats, get_gpus
+from .gpu_helper import get_gpu_stats
 
 logger = logging.getLogger(__name__)
 
@@ -311,17 +311,15 @@ class Runner(object):
 
         self.run_configs, self.log_keys = self.config.gen_run_configs()
 
-    def run(self, script_name):
+    def run(self, script_name, gpu_indices):
         mem_trace = MemoryTrace(self.meta["mem_trace"])
 
-        gpus = get_gpus(self.meta["framework"])
-
-        if len(gpus) < 1 and self.meta["allow_cpu"] is False:
+        if len(gpu_indices) < 1 and self.meta["allow_cpu"] is False:
             raise ValueError(
                 "CPU processing is not enabled and could not find GPU devices to run on. If you want to enable CPU processing please update the config: { 'meta': { 'allow_cpu': true } }"
             )
 
-        max_threads = self._get_max_threads(gpus)
+        max_threads = self._get_max_threads(gpu_indices)
 
         logger.info(
             "Generated %d unique combinations from configuration keys: %s",
@@ -333,10 +331,8 @@ class Runner(object):
         thread_id = 0
         gpu_mapping = {}
 
-        if max_threads > 1:
-            gpu_idxs = list(range(len(gpus)))
-        else:
-            gpu_idxs = [-1]
+        if max_threads == 1:
+            gpu_indices = [-1]
 
         run_times = []
         avg_seconds = 0
@@ -371,7 +367,7 @@ class Runner(object):
             to_del = []
             for t, (gpu, config) in gpu_mapping.items():
                 if not t.isAlive():
-                    gpu_idxs.append(gpu)
+                    gpu_indices.append(gpu)
                     to_del.append(t)
 
                     run_times.append(t.run_time.total_seconds())
@@ -398,7 +394,7 @@ class Runner(object):
                 gc.collect()
                 mem_trace.snapshot("After deleting threads")
 
-            gpu = gpu_idxs.pop()
+            gpu = gpu_indices.pop()
 
             if len(self.run_configs) > 0:
                 config = self.run_configs.pop()

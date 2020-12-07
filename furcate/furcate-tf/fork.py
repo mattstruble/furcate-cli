@@ -1,7 +1,12 @@
+# Copyright (c) 2020 Matt Struble. All Rights Reserved.
+#
+# Use is subject to license terms.
+#
+# Author: Matt Struble
+# Date: Dec. 07 2020
 import os
-
+import re
 import furcate.fork
-
 import tensorflow as tf
 
 
@@ -28,7 +33,18 @@ class Fork(furcate.fork.Fork):
 
     def _set_seed(self):
         super()._set_seed()
-        # tf.random.set_seed(self.seed)
+        tf.random.set_seed(self.seed)
+
+    def get_available_gpu_indices(self):
+        gpus = tf.config.list_physical_devices("GPU")
+        indices =  [int(re.findall(r"\d+", gpu.name)[0]) for gpu in gpus]
+        return indices
+
+    def set_visible_gpus(self):
+        if self.gpu_id > -1:
+            gpus = tf.config.list_physical_devices("GPU")
+            visible_devices = [gpu for gpu in gpus if str(self.gpu_id) in gpu.name]
+            tf.config.set_visible_devices(visible_devices, "GPU")
 
     def model_compile(self, model, optimizer, loss, metrics):
         model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
