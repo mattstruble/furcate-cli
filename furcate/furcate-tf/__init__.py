@@ -5,4 +5,4 @@
 # Author: Matt Struble
 # Date: Dec. 07 2020
 
-from .fork import ForkTF
+from .fork import Fork  # noqa: F401

@@ -7,7 +7,7 @@
 import os
 import platform
 from distutils import spawn
-from subprocess import PIPE, Popen, CalledProcessError
+from subprocess import PIPE, CalledProcessError, Popen
 
 
 class GPU:

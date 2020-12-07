@@ -367,6 +367,3 @@ class Fork(object):
         :param metric: Metric to plot.
         """
         raise NotImplementedError()
-
-
-

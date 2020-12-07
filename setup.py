@@ -1,5 +1,6 @@
-import sys
 import fnmatch
+import sys
+
 from setuptools import find_packages, setup
 from setuptools.command.build_py import build_py as build_py_orig
 
@@ -18,19 +19,34 @@ if "tf" in sys.argv:
     name = "furcate-tf"
     description = description_template.format("TensorFlow")
     install_requires.append("tensorflow >= 2.0")
-    excludes=("tests", "docs", "examples")
+    excludes = ("tests", "docs", "examples")
     sys.argv.remove("tf")
 else:
     name = "furcate"
     description = description_template.format("deep learning")
-    excludes=("tests", "docs", "examples", "*.furcate-tf")
+    excludes = ("tests", "docs", "examples", "*.furcate-tf")
+
 
 class build_py(build_py_orig):
     def find_package_modules(self, package, package_dir):
         modules = super().find_package_modules(package, package_dir)
-        return [(pkg, mod, file,) for (pkg, mod, file,) in modules
-                if not any(fnmatch.fnmatchcase(pkg + '.' + mod, pat=pattern)
-                           for pattern in excludes)]
+        return [
+            (
+                pkg,
+                mod,
+                file,
+            )
+            for (
+                pkg,
+                mod,
+                file,
+            ) in modules
+            if not any(
+                fnmatch.fnmatchcase(pkg + "." + mod, pat=pattern)
+                for pattern in excludes
+            )
+        ]
+
 
 setup(
     name=name,

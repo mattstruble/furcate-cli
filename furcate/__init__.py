@@ -14,6 +14,7 @@ for module in modules:
         lib = import_module(module)
     except ImportError:
         import sys
+
         print(sys.exc_info())
         pass
     else:
