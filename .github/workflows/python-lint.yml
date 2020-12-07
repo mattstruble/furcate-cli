@@ -11,6 +11,4 @@ jobs:
         with:
           python-version: 3.8
       - uses: psf/black@stable
-      - uses: jamescurtin/isort-action@master
-        with:
-          requirementsFiles: "requirements.txt requirements-test.txt"
+      - uses: isort/isort-action@v0.1.0
