@@ -7,14 +7,31 @@
 import os
 import platform
 from distutils import spawn
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
+
 
 class GPU:
-    def __init__(self, id, uuid, util, memory_total, memory_used, memory_free, driver, gpu_name, serial, display_mode, display_active, temp_gpu):
+    def __init__(
+        self,
+        id,
+        uuid,
+        util,
+        memory_total,
+        memory_used,
+        memory_free,
+        driver,
+        gpu_name,
+        serial,
+        display_mode,
+        display_active,
+        temp_gpu,
+    ):
         self.id = id
         self.uuid = uuid
         self.util = util
-        self.memory_util = float(memory_used.split(' ')[0])/float(memory_total.split(' ')[0])
+        self.memory_util = float(memory_used.split(" ")[0]) / float(
+            memory_total.split(" ")[0]
+        )
         self.memory_total = memory_total
         self.memory_used = memory_used
         self.memory_free = memory_free
@@ -25,43 +42,63 @@ class GPU:
         self.display_active = display_active
         self.temperature = temp_gpu
 
+
 def get_gpus(framework):
-    if framework == 'tf':
+    if framework == "tf":
         import tensorflow as tf
-        gpus = tf.config.list_physical_devices('GPU')
+
+        gpus = tf.config.list_physical_devices("GPU")
     else:
-        raise TypeError("The supplied framework '{}' is not supported.".format(framework))
+        raise TypeError(
+            "The supplied framework '{}' is not supported.".format(framework)
+        )
 
     return gpus
+
 
 def set_gpus(index, framework):
     gpus = get_gpus(framework)
 
-    if framework == 'tf':
+    if framework == "tf":
         import tensorflow as tf
-        tf.config.set_visible_devices(gpus[int(index)], 'GPU')
+
+        tf.config.set_visible_devices(gpus[int(index)], "GPU")
     else:
-        raise TypeError("The supplied framework '{}' is not supported.".format(framework))
+        raise TypeError(
+            "The supplied framework '{}' is not supported.".format(framework)
+        )
+
 
 def get_gpu_stats():
     if platform.system() == "Windows":
         nvidia_smi = spawn.find_executable("nvidia-smi")
         if not nvidia_smi:
-            nvidia_smi = "{}\\Program Files\\NVIDIA Corporation\\NVSMI\\nvidia-smi.exe".format(os.environ['systemdrive'])
+            nvidia_smi = (
+                "{}\\Program Files\\NVIDIA Corporation\\NVSMI\\nvidia-smi.exe".format(
+                    os.environ["systemdrive"]
+                )
+            )
     else:
         nvidia_smi = "nvidia-smi"
 
     try:
-        p = Popen([nvidia_smi,"--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu", "--format=csv,noheader"], stdout=PIPE)
+        p = Popen(
+            [
+                nvidia_smi,
+                "--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu",
+                "--format=csv,noheader",
+            ],
+            stdout=PIPE,
+        )
         stdout, stderror = p.communicate()
     except:
         return []
 
-    devices = stdout.decode('UTF-8').split(os.linesep)
+    devices = stdout.decode("UTF-8").split(os.linesep)
     gpus = []
 
-    for i in range(len(devices)-1):
-        vals = devices[i].split(', ')
+    for i in range(len(devices) - 1):
+        vals = devices[i].split(", ")
 
         id = vals[0]
         uuid = vals[1]
@@ -76,7 +113,21 @@ def get_gpu_stats():
         display_mode = vals[10]
         temp_gpu = vals[11]
 
-        gpus.append(GPU(id, uuid, gpu_util, mem_total, mem_used, mem_free, driver, gpu_name, serial, display_mode,
-                        display_active, temp_gpu))
+        gpus.append(
+            GPU(
+                id,
+                uuid,
+                gpu_util,
+                mem_total,
+                mem_used,
+                mem_free,
+                driver,
+                gpu_name,
+                serial,
+                display_mode,
+                display_active,
+                temp_gpu,
+            )
+        )
 
     return gpus

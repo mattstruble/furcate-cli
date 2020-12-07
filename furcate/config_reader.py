@@ -4,14 +4,15 @@
 #
 # Author: Matt Struble
 # Date: Nov. 18 2020
-import json
 import copy
-import random
+import json
 import logging
+import random
+
 
 class ConfigReader(object):
     # Bare minimum configuration keys required to run a default training fork
-    _REQUIRED_KEYS = ['data_name', 'data_dir', 'batch_size', 'epochs']
+    _REQUIRED_KEYS = ["data_name", "data_dir", "batch_size", "epochs"]
     logger = logging.getLogger(__name__)
 
     def __init__(self, filename):
@@ -31,21 +32,21 @@ class ConfigReader(object):
         return self.run_configs, self.permutable_keys
 
     def _load_defaults(self):
-        self.data.setdefault('log_dir', 'logs')
+        self.data.setdefault("log_dir", "logs")
 
-        self.data.setdefault('learning_rate', 0.001)
-        self.data.setdefault('verbose', 2)
-        self.data.setdefault('cache', False)
-        self.data.setdefault('seed', 42)
-        self.data.setdefault('prefetch', 1)
+        self.data.setdefault("learning_rate", 0.001)
+        self.data.setdefault("verbose", 2)
+        self.data.setdefault("cache", False)
+        self.data.setdefault("seed", 42)
+        self.data.setdefault("prefetch", 1)
 
-        self.meta_data.setdefault('allow_cpu', False)
-        self.meta_data.setdefault('exclude_configs', [])
-        self.meta_data.setdefault('mem_trace', False)
+        self.meta_data.setdefault("allow_cpu", False)
+        self.meta_data.setdefault("exclude_configs", [])
+        self.meta_data.setdefault("mem_trace", False)
 
-        self.data.setdefault('train_prefix', self.data['data_name'] + ".train")
-        self.data.setdefault('test_prefix', self.data['data_name'] + ".test")
-        self.data.setdefault('valid_prefix', self.data['data_name'] + ".valid")
+        self.data.setdefault("train_prefix", self.data["data_name"] + ".train")
+        self.data.setdefault("test_prefix", self.data["data_name"] + ".test")
+        self.data.setdefault("valid_prefix", self.data["data_name"] + ".valid")
 
     def _load_config(self, config):
         with open(config) as f:
@@ -53,29 +54,35 @@ class ConfigReader(object):
 
         for key in self._REQUIRED_KEYS:
             if key not in data.keys():
-                raise ValueError("The configuration file '{}' does not contain the required key: {}".format(config, key))
+                raise ValueError(
+                    "The configuration file '{}' does not contain the required key: {}".format(
+                        config, key
+                    )
+                )
 
-        data.setdefault('meta', {})
+        data.setdefault("meta", {})
 
-        return data, data['meta']
+        return data, data["meta"]
 
     def _gen_config_permutations(self, index, dict, enumerated_data):
         if index >= len(enumerated_data):
             return [dict]
 
-        key = enumerated_data[index]['key']
+        key = enumerated_data[index]["key"]
 
-        if type(enumerated_data[index]['value']) is list:
+        if type(enumerated_data[index]["value"]) is list:
             self.permutable_keys.add(key)
-            values = enumerated_data[index]['value']
+            values = enumerated_data[index]["value"]
         else:
-            values = [enumerated_data[index]['value']]
+            values = [enumerated_data[index]["value"]]
 
         result = []
         for value in values:
             tmp = copy.deepcopy(dict)
             tmp[key] = value
-            result.extend(self._gen_config_permutations(index + 1, tmp, enumerated_data))
+            result.extend(
+                self._gen_config_permutations(index + 1, tmp, enumerated_data)
+            )
 
         return result
 
@@ -83,10 +90,7 @@ class ConfigReader(object):
         enumerated_data = {}
 
         for index, (key, value) in enumerate(data.items()):
-            enumerated_data[index] = {
-                'key': key,
-                'value': value
-            }
+            enumerated_data[index] = {"key": key, "value": value}
 
         self.run_configs = self._gen_config_permutations(0, {}, enumerated_data)
 
@@ -96,18 +100,20 @@ class ConfigReader(object):
         for config in self.run_configs:
             match = True
             for key, value in config.items():
-                if key not in ['meta']:
+                if key not in ["meta"]:
                     if run_dict[key] != value:
                         match = False
                         break
 
             if match:
-                self.logger.debug("Removing previous run [%s] from run_configs", str(config))
+                self.logger.debug(
+                    "Removing previous run [%s] from run_configs", str(config)
+                )
                 self.run_configs.remove(config)
                 break
 
     def _clean_configs(self):
-        skip_configs = self.meta_data['exclude_configs']
+        skip_configs = self.meta_data["exclude_configs"]
         if len(skip_configs) > 0 and len(self.run_configs) > 1:
             to_remove = []
             for run_config in self.run_configs:
@@ -126,6 +132,9 @@ class ConfigReader(object):
                     to_remove.append(run_config)
 
             if len(to_remove) > 0:
-                self.logger.info("Excluding %d configs matching configured 'exclude_configs'", len(to_remove))
+                self.logger.info(
+                    "Excluding %d configs matching configured 'exclude_configs'",
+                    len(to_remove),
+                )
                 for remove in to_remove:
                     self.run_configs.remove(remove)
