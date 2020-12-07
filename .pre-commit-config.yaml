@@ -1,0 +1,22 @@
+repos:
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.6.4
+    hooks:
+      - id: isort
+        types: [python]
+        stages: [commit]
+
+  - repo: https://github.com/psf/black
+    rev: stable # Replace by any tag/version: https://github.com/psf/black/tags
+    hooks:
+      - id: black
+        language_version: python3 # Should be a command that runs python3.6+
+        types: [python]
+        stages: [commit]
+
+  -   repo: https://gitlab.com/pycqa/flake8
+      rev: 3.8.4
+      hooks:
+        - id: flake8
+          types: [python]
+          stages: [commit]
