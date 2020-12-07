@@ -166,8 +166,8 @@ class Fork(object):
             run_results["end_time_string"] = end_time.strftime(self.date_format)
 
             run_time = end_time - start_time
-            run_results["run_time"] = run_time.total_seconds()
-            run_results["run_time_string"] = seconds_to_string(run_time.total_seconds())
+            run_results["total_time"] = run_time.total_seconds()
+            run_results["total_time_string"] = seconds_to_string(run_time.total_seconds())
 
             if test_dataset:
                 results = self.model_evaluate(model, test_dataset)
