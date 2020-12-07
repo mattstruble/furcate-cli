@@ -9,6 +9,10 @@ A lightweight wrapper for automatically forking deep learning sessions to enable
 ## Requirements 
 
 * Python 3.x
+* Matplotlib
+* Pandas
+
+[furcate-tf](#furcate-tf) additionally requires `tensorflow>=2.0`
 
 ## Installation 
 
@@ -91,7 +95,7 @@ run_data.csv
 ## Examples 
 
 * [tensorflow](/examples/tensorflow)
-    * Shows implementation of [ForkTF](#forktf) with custom dataset generation and custom configurations. 
+    * Shows implementation of [furcate-tf](#furcate-tf) with custom dataset generation and custom configurations. 
 
 ## API
 
@@ -100,6 +104,13 @@ run_data.csv
 Subclassing `furcate.Fork` will allow your app to inherit all the auto-forking capabilities and gives access to the forked configuration 
 data as class member variables. For full customization Fork provides virtual methods for each stage of the model training 
 pipeline each method is listed below by call-order. 
+
+* **get_available_gpu_indices()**
+    * Returns a list of available GPU indices. Defaults to using `nvidia-smi`.
+
+* **set_visible_gpus()**
+    * Restricts the CUDA visible devices on disk to the current processor's GPU id. 
+    Defaults to setting OS Environment Variable `CUDA_VISIBLE_DEVICES` to `self.gpu_id`. 
 
 * **get_datasets(train_fp, test_fp, valid_fp)**
     * Return the computed datasets for model ingestion. The train_fp, test_fp, and valid_fp are arrays containing filepaths
@@ -116,18 +127,24 @@ pipeline each method is listed below by call-order.
     
 * **get_loss()**
     * Return the loss for use in model compilation. 
+    
+* **get_callbacks()** 
+    * Return a list of training callbacks. Defaults to None. 
 
 * **model_compile(model, optimizer, loss, metrics)**
     * Passes in the built model, optmizer, loss, and metrics, to compile the model with prior to training.
 
-* **get_callbacks()** 
-    * Return a list of training callbacks. Defaults to None. 
+* **model_summary(model)**
+    * Intended to be used to display the model summary to log. 
 
 * **model_fit(model, train_dataset, epochs, valid_dataset, callbacks, verbose)**
     * Train the model with the results from the above methods. 
 
 * **model_evaluate(model, test_dataset)**
     * Called only if test_dataset exists. Returns the results of the model evaluation. 
+    
+* **model_save(model)**
+    * Intended to be used to save the fully trained model to disk. 
 
 * **save_metric(results_dict, history, metric)**
     * Intended to be used to save metric data to a dictionary which will then be saved to disk. It is passed a results dictionary that already contains run times,
@@ -147,28 +164,39 @@ Fork also includes optional virtual functions for data preprocessing:
 
 * **valid_preprocess(self, record)**
 
-### ForkTF
+### furcate-tf
 
-ForkTF overrides the following Fork methods with common TensorFlow implementations:
+furcate-tf overrides the following Fork methods with common TensorFlow implementations:
 
+* **get_available_gpu_indices**
+    * Utilizes `tf.config.list_physical_devices("GPU")` to get the indices of devices visible to TensorFlow.
+* **set_visible_gpus**
+    * `tf.config.set_visible_devices([GPU_ID], "GPU")`
 * **model_compile**
     * `model.compile(optimizer=optimizer, loss=loss, metrics=metrics)`
+* **model_summary**
+    * `model.summary()`
 * **model_fit**
     * `model.fit(train_set, epochs=epochs, validation_data=valid_set, callbacks=callbacks, verbose=verbose)`
 * **model_evaluate** 
     * `model.evaluate(test_set)`
+* **model_save**
+    * `model.save(os.path.join(self.log_dir, "model.h5"))`
 * **save_metric**
     * Gets train and validation values from `history.history` and plots them individually against epochs. 
 * **plot_metric**
     * Gets train and validation values from `history.history` and stores the final epoch values in the dictionary. 
     
-ForkTF also comes with additional helper methods:
+furcate-tf also comes with additional helper methods:
 
 * **gen_tfrecord_dataset(self, filepaths, processor, shuffle=False)**
     * Creates a `TFRecordDataset` from the provided filepaths, mapped to the provided processor, 
     based on the config values for `cache`, `shuffle_buffer_size`, `batch_size`, `seed`, `prefetch`, 
     `num_parallel_reads`, and `num_parallel_calls`. 
-
+    
+`num_parallel_reads` and `num_parallel_calls` can be configured like every other data value, 
+but if unset furcate-tf defaults them to `tf.data.experimental.AUTOTUNE`.
+ 
 ## Configuration 
 
 Furcate reads in configuration information from any standard json file. This allows the user to define any configuration variables
@@ -233,4 +261,5 @@ Therefore, a dictionary pairing will need to be created per unique combination t
 
 ## Roadmap 
 
+* Hyperparameter auto-tuning
 * PyTorch implementation 
