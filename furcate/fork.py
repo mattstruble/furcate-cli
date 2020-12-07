@@ -36,14 +36,48 @@ class Fork(object):
         else:
             self.config = ConfigReader(config_filename)
 
-        self.data = self.config.data
+    @property
+    def data(self):
+        return self.config.data
 
-    def _set_attributes(self):
-        for key, value in self.data.items():
-            self.__setattr__(key, value)
+    @property
+    def meta(self):
+        return self.data['meta']
 
-        np.random.seed(self.data['seed'])
-        random.seed(self.data['seed'])
+    @property
+    def log_dir(self):
+        return self.data['log_dir']
+
+    @property
+    def learning_rate(self):
+        return self.data['learning_rate']
+
+    @property
+    def verbose(self):
+        return self.data['verbose']
+
+    @property
+    def cache(self):
+        return self.data['cache']
+
+    @property
+    def seed(self):
+        return self.data['seed']
+
+    @property
+    def prefetch(self):
+        return self.data['prefetch']
+
+    @property
+    def gpu_id(self):
+        return self.data['gpu_id']
+
+    def __getattr__(self, item):
+        return self.data[item]
+
+    def _set_seed(self):
+        random.seed(self.seed)
+        np.random.seed(self.seed)
 
     def _load_args(self):
         parser = ArgumentParser()
@@ -57,11 +91,11 @@ class Fork(object):
         self.script_name = sys.argv[0]
 
     def _set_visible_gpus(self):
-        if self.data['gpu'] > -1:
-            set_gpus(self.data['gpu'], self.meta['framework'])
+        if self.gpu_id > -1:
+            set_gpus(self.gpu_id, self.meta['framework'])
 
     def _load_defaults(self):
-        self.data.setdefault('gpu', self.args.gpu_id)
+        self.data.setdefault('gpu_id', self.args.gpu_id)
 
     def _load_logging_config(self):
         if not self.args.log_config:
@@ -91,7 +125,7 @@ class Fork(object):
             runner = Runner(self.config)
             runner.run(self.script_name)
         else:
-            self._set_attributes()
+            self._set_seed()
             self._set_visible_gpus()
 
             self.meta['data'] = {}
@@ -101,14 +135,12 @@ class Fork(object):
             run_results['start_time'] = start_time.timestamp()
             run_results['start_time_string'] = start_time.strftime(self.date_format)
 
-            tf.random.set_seed(self.seed)
-
             train_fp, test_fp, valid_fp = self.get_filepaths()
             train_dataset, test_dataset, valid_dataset = self.get_datasets(train_fp, test_fp, valid_fp)
             model = self.get_model()
 
             if self.verbose >= 1:
-                model.summary()
+                self.model_summary(model)
 
             metrics = self.get_metrics()
             optimizer = self.get_optimizer()
@@ -120,7 +152,7 @@ class Fork(object):
 
             history = self.model_fit(model, train_dataset, self.epochs, valid_dataset, callbacks, self.verbose)
 
-            model.save(os.path.join(self.log_dir, 'model.h5'))
+            self.model_save(model)
 
             end_time = datetime.now()
             run_results['end_time'] = end_time.timestamp()
@@ -145,8 +177,13 @@ class Fork(object):
             with open(os.path.join(self.log_dir, 'run_data.json'), 'w') as f:
                 json.dump(self.data, f)
 
-
-
+    def model_summary(self, model):
+        '''
+        Used for displaying the model architecture summary to the user. Called when verbose > 1.
+        :param model: Model to be displayed.
+        :return: None
+        '''
+        raise NotImplementedError()
 
     def get_model(self) -> object:
         '''
@@ -209,6 +246,14 @@ class Fork(object):
         :param model: Model to evaluate
         :param test_set: Dataset to test the model against
         :return: Evaluation results
+        '''
+        raise NotImplementedError()
+
+    def model_save(self, model):
+        '''
+        Save the model to disk.
+        :param model: Trained model to save
+        :return: None
         '''
         raise NotImplementedError()
 
@@ -302,6 +347,14 @@ class ForkTF(Fork):
     import tensorflow as tf
     AUTOTUNE = tf.data.experimental.AUTOTUNE
 
+    @property
+    def num_parallel_reads(self):
+        return self.data['num_parallel_reads']
+
+    @property
+    def num_parallel_calls(self):
+        return self.data['num_parallel_calls']
+
     def _load_defaults(self):
         '''
         Sets num_parallel_reads and num_parallel_calls to tf.AUTOTUNE, and sets framework to tf.
@@ -312,12 +365,15 @@ class ForkTF(Fork):
         self.data.setdefault('num_parallel_calls', self.AUTOTUNE)
         self.config.meta_data.setdefault('framework', 'tf')
 
-    def _set_attributes(self):
-        super()._set_attributes()
-        tf.random.set_seed(self.data['seed'])
+    def _set_seed(self):
+        super()._set_seed()
+        tf.random.set_seed(self.seed)
 
     def model_compile(self, model, optimizer, loss, metrics):
         model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+
+    def model_summary(self, model):
+        model.summary()
 
     def model_fit(self, model, train_set, epochs, valid_set, callbacks, verbose):
         history = model.fit(train_set, epochs=epochs, validation_data=valid_set, callbacks=callbacks, verbose=verbose)
@@ -326,6 +382,9 @@ class ForkTF(Fork):
     def model_evaluate(self, model, test_set):
         results = model.evaluate(test_set)
         return results
+
+    def model_save(self, model):
+        model.save(os.path.join(self.log_dir, 'model.h5'))
 
     def gen_tfrecord_dataset(self, filepaths, processor, shuffle=False):
         dataset = tf.data.TFRecordDataset(filepaths, num_parallel_reads=self.num_parallel_reads)
