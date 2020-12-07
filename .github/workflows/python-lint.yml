@@ -1,16 +1,47 @@
 name: Lint 
 
-on: [push, pull_request]
+on: 
+  pull_request:
+    paths: 
+      - '*.py'
+  push:
+    paths:
+      - '*.py'
 
 jobs:
-  lint:
+  black:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Furcate
       - uses: actions/checkout@v2
+      - name: Setup Python
       - uses: actions/setup-python@v2
-        with:
-          python-version: 3.8
+      - name: Run Black
       - uses: psf/black@stable
-      - uses: jamescurtin/isort-action@master
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Furcate
+      - uses: actions/checkout@v2
+      - name: Setup Python
+      - uses: actions/setup-python@v2
+      - name: Run isort
+      - uses: isort/isort-action@v0.1.0
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
         with:
-          requirementsFiles: "requirements.txt"
+          python-version: 3.7
+          architecture: x64
+      - name: Checkout Furcate
+        uses: actions/checkout@v2
+      - name: Install flake8
+        run: pip install flake8
+      - name: Run flake8
+        uses: suo/flake8-github-action@releases/v1
+        with:
+          checkName: 'flake8'
+        env: 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
