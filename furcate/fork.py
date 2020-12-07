@@ -442,7 +442,7 @@ class ForkTF(Fork):
         if not isinstance(metric, str):
             try:
                 metric = metric.name
-            except:
+            except NameError:
                 return None
 
         if metric not in history:

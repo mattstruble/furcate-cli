@@ -7,7 +7,7 @@
 import os
 import platform
 from distutils import spawn
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen, CalledProcessError
 
 
 class GPU:
@@ -91,7 +91,7 @@ def get_gpu_stats():
             stdout=PIPE,
         )
         stdout, stderror = p.communicate()
-    except:
+    except CalledProcessError:
         return []
 
     devices = stdout.decode("UTF-8").split(os.linesep)

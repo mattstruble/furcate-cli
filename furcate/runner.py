@@ -396,7 +396,7 @@ class Runner(object):
 
                 to_del.clear()
                 gc.collect()
-                mem_trace.snapshot("After deleting threads".format(str(to_del)))
+                mem_trace.snapshot("After deleting threads")
 
             gpu = gpu_idxs.pop()
 
