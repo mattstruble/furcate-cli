@@ -9,7 +9,6 @@ from importlib import import_module
 modules = ["furcate.fork", "furcate.furcate-tf.fork"]
 
 for module in modules:
-    print(module)
     try:
         lib = import_module(module)
     except ImportError:
