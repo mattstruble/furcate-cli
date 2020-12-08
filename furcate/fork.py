@@ -112,6 +112,11 @@ class Fork(object):
             logger.warning(e)
 
     def is_runner(self):
+        """
+        Checks if current thread is the runner thread. If there are multiple generated run_configs in ConfigReader
+        then thread is classified as runner in order to carry responsibility of ingesting the multiple configs.
+        :return: True if runner.
+        """
         run_configs, _ = self.config.gen_run_configs()
         return len(run_configs) > 1
 
