@@ -8,7 +8,6 @@ import gc
 import json
 import logging
 import os
-import re
 import subprocess
 import tempfile
 import threading
@@ -64,7 +63,7 @@ def config_to_csv(config):
             csv_df = pd.read_csv(fname)
             csv_df = csv_df.append(config.data, ignore_index=True)
         else:
-            csv_df = pd.DataFrame.from_dict(config.data)
+            csv_df = pd.DataFrame(config.data, index=[0])
 
         csv_df.to_csv(fname, header=True, mode="w", encoding="utf-8", index=False)
 
