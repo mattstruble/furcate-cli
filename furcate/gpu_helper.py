@@ -11,6 +11,39 @@ from subprocess import PIPE, CalledProcessError, Popen
 
 
 class GPU:
+    """
+    Storage class for holding onto GPU status.
+
+    Attributes
+    ---
+    id: int
+        GPU device id.
+    uuid: str
+        GPU device uuid.
+    util: str
+        Volatile GPU Utilization
+    memory_util: float
+        Percentage of total device memory being utilized.
+    memory_total: str
+        Total device memory with units.
+    memory_used: str
+        Amount of device memory being used with units.
+    memory_free: str
+        Amount of free device memory with units.
+    driver: str
+        Device driver version.
+    name: str
+        Device name
+    serial: str
+        Device serial number
+    display_mode: str
+        Whether display mode is Enabled or Disabled
+    display_acitve: str
+        Whether display active is Enabled or Disabled
+    temperature: int
+        GPU temperature in Celsius.
+    """
+
     def __init__(
         self,
         id,
@@ -44,6 +77,40 @@ class GPU:
 
 
 def get_gpu_stats():
+    """
+    Calls `nvidia-smi` cli to query gpu status and store it in an object.
+
+    Attributes
+    ---
+    id: int
+        GPU device id.
+    uuid: str
+        GPU device uuid.
+    util: str
+        Volatile GPU Utilization
+    memory_util: float
+        Percentage of total device memory being utilized.
+    memory_total: str
+        Total device memory with units.
+    memory_used: str
+        Amount of device memory being used with units.
+    memory_free: str
+        Amount of free device memory with units.
+    driver: str
+        Device driver version.
+    name: str
+        Device name
+    serial: str
+        Device serial number
+    display_mode: str
+        Whether display mode is Enabled or Disabled
+    display_acitve: str
+        Whether display active is Enabled or Disabled
+    temperature: int
+        GPU temperature in Celsius.
+
+    :return: List of GPU objects.
+    """
     if platform.system() == "Windows":
         nvidia_smi = spawn.find_executable("nvidia-smi")
         if not nvidia_smi:

@@ -6,10 +6,12 @@
 # Date: Nov. 18 2020
 from importlib import import_module
 
+from .gpu_helper import get_gpu_stats  # noqa. F401
+
+# Import different versions of furcate with specific frameworks overriding base furcate
 modules = ["furcate.fork", "furcate.furcate-tf.fork"]
 
 for module in modules:
-    print(module)
     try:
         lib = import_module(module)
     except ImportError:
