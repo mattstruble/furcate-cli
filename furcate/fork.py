@@ -186,7 +186,7 @@ class Fork(object):
                 self.plot_metric(history, metric)
 
             with open(os.path.join(self.log_dir, "history.json"), "w") as f:
-                json.dump(history.history, f)
+                self.save_history(history, f)
 
             with open(os.path.join(self.log_dir, "run_data.json"), "w") as f:
                 json.dump(self.data, f)
@@ -384,5 +384,14 @@ class Fork(object):
         :param dict: Dictionary to store the last metric value in.
         :param history: History of model training.
         :param metric: Metric to plot.
+        """
+        raise NotImplementedError()
+
+    def save_history(self, history, out_file):
+        """
+        Saves the model history object to the designated output file.
+        :param history: Training history generated during model_fit.
+        :param out_file: File object to save history to.
+        :return: None
         """
         raise NotImplementedError()

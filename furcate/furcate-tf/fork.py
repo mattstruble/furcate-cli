@@ -4,6 +4,7 @@
 #
 # Author: Matt Struble
 # Date: Dec. 07 2020
+import json
 import os
 import re
 
@@ -123,3 +124,6 @@ class Fork(furcate.fork.Fork):
         dict["train_" + metric_name] = train_metrics[-1]
         dict["val_" + metric_name] = val_metrics[-1]
         dict["epochs"] = len(val_metrics)
+
+    def save_history(self, history, out_file):
+        json.dump(history.history, out_file)
