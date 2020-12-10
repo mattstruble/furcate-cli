@@ -10,7 +10,7 @@ import logging
 import random
 
 
-class ConfigReader(object):
+class ConfigReader:
     """
     A class to read and handle configuration data.
 
@@ -119,7 +119,7 @@ class ConfigReader(object):
 
         key = enumerated_data[index]["key"]
 
-        if type(enumerated_data[index]["value"]) is list:
+        if isinstance(enumerated_data[index]["value"], list):
             self.permutable_keys.add(key)
             values = enumerated_data[index]["value"]
         else:

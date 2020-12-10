@@ -113,7 +113,7 @@ class Fork(furcate.fork.Fork):
 
         self.plot(metric_name, epochs, train_metrics, val_metrics)
 
-    def save_metric(self, dict, history, metric):
+    def save_metric(self, run_results, history, metric):
         metric_name = self._get_metric(metric, history.history)
         if metric_name is None:
             return
@@ -121,9 +121,9 @@ class Fork(furcate.fork.Fork):
         train_metrics = history.history[metric_name]
         val_metrics = history.history["val_" + metric_name]
 
-        dict["train_" + metric_name] = train_metrics[-1]
-        dict["val_" + metric_name] = val_metrics[-1]
-        dict["epochs"] = len(val_metrics)
+        run_results["train_" + metric_name] = train_metrics[-1]
+        run_results["val_" + metric_name] = val_metrics[-1]
+        run_results["epochs"] = len(val_metrics)
 
     def save_history(self, history, out_file):
         json.dump(history.history, out_file)

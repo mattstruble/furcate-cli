@@ -233,13 +233,14 @@ class TrainingThread(threading.Thread):
         threading.Thread.__init__(self)
         self.setDaemon(True)
 
-        self.threadID = id
+        self.thread_id = id
         self.config = config
         self.script_name = script_name
         self.log_keys = log_keys
 
         self.dir_name = os.path.basename(self.config["data_dir"])
         self.name = self.config["data_name"] + str(id)
+        self.run_time = 0
 
     def _gen_log_dir(self):
         folder = "{}_{}".format(self.name, self.dir_name)
@@ -257,7 +258,7 @@ class TrainingThread(threading.Thread):
 
     def _generate_run_command(self, config_path):
         command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
-            self.script_name, config_path, self.name, self.threadID
+            self.script_name, config_path, self.name, self.thread_id
         )
 
         if self.config["gpu"] is not None:
@@ -303,7 +304,7 @@ class TrainingThread(threading.Thread):
         self.run_time = datetime.now() - start_time
 
 
-class Runner(object):
+class Runner:
     def __init__(self, config):
         self.config_updater = ConfigUpdater(config)
         self.config = self.config_updater.get_config()
@@ -379,7 +380,7 @@ class Runner(object):
                     )
                     logger.info(
                         "Thread %d finished - %s - %d configs remaining - est. total time remaining: %s",
-                        t.threadID,
+                        t.thread_id,
                         thread_time,
                         len(self.run_configs),
                         remaining_time,

@@ -23,7 +23,7 @@ from .runner import Runner, seconds_to_string
 logger = logging.getLogger(__name__)
 
 
-class Fork(object):
+class Fork:
     date_format = "%Y-%m-%d %H:%M:%S"
 
     def __init__(self, config_filename):
@@ -103,13 +103,13 @@ class Fork(object):
             with open(log_fname, "r") as f:
                 data = json.load(f)
             logging.config.dictConfig(data)
-        except Exception as e:
+        except ValueError as ex:
             logging.basicConfig(
                 format="%(asctime)s.%(msecs)06d: %(name)s] %(message)s",
                 datefmt=self.date_format,
                 level=logging.DEBUG,
             )
-            logger.warning(e)
+            logger.error(ex)
 
     def is_runner(self):
         """
@@ -378,10 +378,10 @@ class Fork(object):
         """
         raise NotImplementedError()
 
-    def save_metric(self, dict, history, metric):
+    def save_metric(self, run_results, history, metric):
         """
         Takes the history object and the provided metric and stores the latest value into the provided dictionary.
-        :param dict: Dictionary to store the last metric value in.
+        :param run_results: Dictionary to store the last metric value in.
         :param history: History of model training.
         :param metric: Metric to plot.
         """

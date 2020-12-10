@@ -123,15 +123,14 @@ def get_gpu_stats():
         nvidia_smi = "nvidia-smi"
 
     try:
-        p = Popen(
+        stdout, _ = Popen(
             [
                 nvidia_smi,
                 "--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu",
                 "--format=csv,noheader",
             ],
             stdout=PIPE,
-        )
-        stdout, stderror = p.communicate()
+        ).communicate()
     except CalledProcessError:
         return []
 
