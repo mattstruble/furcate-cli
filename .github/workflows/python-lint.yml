@@ -1,12 +1,6 @@
 name: Lint 
 
-on: 
-  pull_request:
-    paths: 
-      - '*.py'
-  push:
-    paths:
-      - '*.py'
+on: [push, pull_request]
 
 jobs:
   black:
