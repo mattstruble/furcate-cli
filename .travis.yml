@@ -4,10 +4,11 @@ cache:
   directories:
     - $HOME/.cache/pre-commit
 env:
-  - TEST_CMD="python -m pytest tests/"
+  - TEST_CMD="pytest"
 install:
-  - pip install pytest pytest-cov pre-commit coveralls
+  - pip install pytest pytest-cov pre-commit
   - pip install -e '.[d]'
+  - pip install coveralls
 script:
   - $TEST_CMD
 after_success:
