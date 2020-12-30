@@ -4,14 +4,10 @@
 #
 # Author: Matt Struble
 # Date: Dec. 29 2020
-
-import json
-import os
-import tempfile
-
 import pytest
 
 from furcate.config_reader import ConfigReader
+from tests.util import close_tmpfile, make_tmpfile
 
 
 @pytest.fixture(scope="class")
@@ -98,19 +94,6 @@ def excluded_config():
     path = make_tmpfile(config)
     yield config, path
     close_tmpfile(path)
-
-
-def make_tmpfile(config):
-    fd, tmp_path = tempfile.mkstemp(prefix="furcate_tests")
-
-    with os.fdopen(fd, "w") as tmp:
-        json.dump(config, tmp)
-
-    return tmp_path
-
-
-def close_tmpfile(tmp_path):
-    os.remove(tmp_path)
 
 
 @pytest.fixture(

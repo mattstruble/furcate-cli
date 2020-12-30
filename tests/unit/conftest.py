@@ -4,29 +4,16 @@
 #
 # Author: Matt Struble
 # Date: Dec. 30 2020
-
-import json
-import os
-import tempfile
-
 import pytest
 
 from furcate.config_reader import ConfigReader
+from tests.util import close_tmpfile, make_tmpfile
 
 
 @pytest.fixture(scope="class")
 def basic_config_reader():
     config = {"data_name": "test", "data_dir": "foo", "batch_size": 32, "epochs": 10}
 
-    fd, tmp_path = tempfile.mkstemp(prefix="furcate_tests")
-
-    try:
-        with os.fdopen(fd, "w") as tmp:
-            json.dump(config, tmp)
-
-        config_reader = ConfigReader(tmp_path)
-
-        yield config, config_reader
-
-    finally:
-        os.remove(tmp_path)
+    path = make_tmpfile(config)
+    yield config, ConfigReader(path)
+    close_tmpfile(path)
