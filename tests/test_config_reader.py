@@ -7,11 +7,9 @@
 
 import random
 
-import pytest
-
 from furcate.config_reader import ConfigReader
 
-from .conftest import ConfigLoader, OnlyMultipleRunsLoader
+from .conftest import ConfigLoader
 
 
 def assert_config(expected, actual):
@@ -28,26 +26,6 @@ def get_expected_permutations(config):
             expected_permutations *= len(value)
 
     return expected_permutations
-
-
-@pytest.mark.parametrize(
-    "test_config",
-    [
-        "basic_config",
-        "multiple_runs_config",
-        "unique_keys_config",
-        "combination_config",
-    ],
-)
-def test_read_config(test_config, request):
-    """
-    Assert that valid configs are read properly into ConfigReader and the generated data object matches the provided
-    dict.
-    """
-    config, path = request.getfixturevalue(test_config)
-    cr = ConfigReader(path)
-
-    assert_config(config, cr.data)
 
 
 def test_open_broken_config(broken_config):
@@ -98,7 +76,36 @@ def test_excluded_configs(excluded_config):
             assert all_found is False
 
 
-class TestConfig(ConfigLoader):
+class TestConfigIntegration(ConfigLoader):
+    def assert_config_in_data(self, config, is_found=True):
+        run_configs, _ = self.config_reader.gen_run_configs()
+
+        found = False
+        for rc in run_configs:
+            matched = False
+            for key, value in config.items():
+                if rc[key] == value:
+                    matched = True
+                else:
+                    matched = False
+                    break
+
+            if matched:
+                found = True
+                break
+
+        assert is_found == found
+
+    def assert_config_not_in_data(self, config):
+        self.assert_config_in_data(config, is_found=False)
+
+    def test_read_config(self):
+        """
+        Assert that valid configs are read properly into ConfigReader and the generated data object matches the provided
+        dict.
+        """
+        assert_config(self.config, self.config_reader.data)
+
     def test_run_configs(self):
         """
         Assert that the config reader generates the expected number of run_configs based on the number of possible
@@ -142,30 +149,6 @@ class TestConfig(ConfigLoader):
                 found += int(matched)
 
             assert 1 == found
-
-
-class TestMultipleRuns(OnlyMultipleRunsLoader):
-    def assert_config_in_data(self, config, is_found=True):
-        run_configs, _ = self.config_reader.gen_run_configs()
-
-        found = False
-        for rc in run_configs:
-            matched = False
-            for key, value in config.items():
-                if rc[key] == value:
-                    matched = True
-                else:
-                    matched = False
-                    break
-
-            if matched:
-                found = True
-                break
-
-        assert is_found == found
-
-    def assert_config_not_in_data(self, config):
-        self.assert_config_in_data(config, is_found=False)
 
     def test_remove_completed_runs(self):
         run_configs, _ = self.config_reader.gen_run_configs()

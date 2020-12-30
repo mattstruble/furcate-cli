@@ -50,6 +50,7 @@ class ConfigReader:
 
         self.run_configs = []
         self.permutable_keys = set()
+        self._generated = False
 
     def gen_run_configs(self):
         """
@@ -57,10 +58,11 @@ class ConfigReader:
         remaining permutations.
         :return: All configuration permutations (list), Data keys that had multiple permutations (Set)
         """
-        if len(self.run_configs) == 0:
+        if not self._generated:
             self._gen_run_configs(self.data)
             self._exclude_configs()
             random.shuffle(self.run_configs)
+            self._generated = True
 
         return self.run_configs, self.permutable_keys
 

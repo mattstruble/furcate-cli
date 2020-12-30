@@ -130,20 +130,6 @@ def config_init(request):
     yield
 
 
-@pytest.fixture(params=["multiple_runs_config", "combination_config"], scope="class")
-def multiple_runs_init(request):
-    config, path = request.getfixturevalue(request.param)
-    request.cls.config_reader = ConfigReader(path)
-    request.cls.config = config
-    request.cls.config_path = path
-    yield
-
-
 @pytest.mark.usefixtures("config_init")
 class ConfigLoader:
-    pass
-
-
-@pytest.mark.usefixtures("multiple_runs_init")
-class OnlyMultipleRunsLoader:
     pass
