@@ -59,7 +59,7 @@ class ConfigReader:
         :return: All configuration permutations (list), Data keys that had multiple permutations (Set)
         """
         if not self._generated:
-            self._gen_run_configs(self.data)
+            self.run_configs = self._gen_run_configs(self.data)
             self._exclude_configs()
             random.shuffle(self.run_configs)
             self._generated = True
@@ -87,6 +87,15 @@ class ConfigReader:
         self.data.setdefault("test_prefix", self.data["data_name"] + ".test")
         self.data.setdefault("valid_prefix", self.data["data_name"] + ".valid")
 
+    def _validate_data(self, data, fname):
+        for key in self._REQUIRED_KEYS:
+            if key not in data.keys():
+                raise ValueError(
+                    "The configuration file '{}' does not contain the required key: {}".format(
+                        fname, key
+                    )
+                )
+
     def _load_config(self, fname):
         """
         Loads the passed in json file name into a dictionary and validates that the required keys exist.
@@ -96,13 +105,7 @@ class ConfigReader:
         with open(fname) as f:
             data = json.load(f)
 
-        for key in self._REQUIRED_KEYS:
-            if key not in data.keys():
-                raise ValueError(
-                    "The configuration file '{}' does not contain the required key: {}".format(
-                        fname, key
-                    )
-                )
+        self._validate_data(data, fname)
 
         data.setdefault("meta", {})
 
@@ -148,7 +151,7 @@ class ConfigReader:
         for index, (key, value) in enumerate(data.items()):
             enumerated_data[index] = {"key": key, "value": value}
 
-        self.run_configs = self._gen_config_permutations(0, {}, enumerated_data)
+        return self._gen_config_permutations(0, {}, enumerated_data)
 
     def remove_completed_runs(self, run_dict):
         """
