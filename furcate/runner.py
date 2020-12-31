@@ -46,24 +46,24 @@ def seconds_to_string(seconds):
 csv_lock = threading.Lock()
 
 
-def config_to_csv(config):
-    log_dir = os.path.dirname(config.data["log_dir"])
+def config_to_csv(config_reader):
+    log_dir = os.path.dirname(config_reader.data["log_dir"])
     fname = os.path.join(log_dir, "run_data.csv")
 
-    run_data = config.meta_data.pop("data", {})
+    run_data = config_reader.meta_data.pop("data", {})
 
     # Package metadata up to the data layer for writing to csv
     for key, value in run_data.items():
-        config.data["run_" + key] = value
+        config_reader.data["run_" + key] = value
 
-    config.data["meta"] = str(config.data["meta"])
+    config_reader.data["meta"] = str(config_reader.data["meta"])
 
     with csv_lock:
         if os.path.exists(fname):
             csv_df = pd.read_csv(fname)
-            csv_df = csv_df.append(config.data, ignore_index=True)
+            csv_df = csv_df.append(config_reader.data, ignore_index=True)
         else:
-            csv_df = pd.DataFrame(config.data, index=[0])
+            csv_df = pd.DataFrame(config_reader.data, index=[0])
 
         csv_df.to_csv(fname, header=True, mode="w", encoding="utf-8", index=False)
 
@@ -240,7 +240,7 @@ class TrainingThread(threading.Thread):
 
         self.dir_name = os.path.basename(self.config["data_dir"])
         self.name = self.config["data_name"] + str(id)
-        self.run_time = 0
+        self.run_time = datetime.now() - datetime.now()
 
     def _gen_log_dir(self):
         folder = "{}_{}".format(self.name, self.dir_name)
@@ -419,7 +419,7 @@ class Runner:
 
     def _get_max_threads(self, gpus):
         if self.meta and "max_threads" in self.meta:
-            max_threads = min(1, self.meta["max_threads"])
+            max_threads = max(1, self.meta["max_threads"])
 
             if max_threads > len(gpus) > 1:
                 logger.warning(
