@@ -46,14 +46,17 @@ def seconds_to_string(seconds):
 csv_lock = threading.Lock()
 
 
-def get_run_data_csv_path(config_reader):
-    log_dir = os.path.dirname(config_reader.data["log_dir"])
+def get_run_data_csv_path(config_reader, has_subdir=False):
+    log_dir = config_reader.data["log_dir"]
+    if has_subdir:
+        log_dir = os.path.dirname(log_dir)
+
     path = os.path.join(log_dir, "run_data.csv")
     return path
 
 
-def config_to_csv(config_reader):
-    fname = get_run_data_csv_path(config_reader)
+def config_to_csv(config_reader, has_subdir=True):
+    fname = get_run_data_csv_path(config_reader, has_subdir)
 
     run_data = config_reader.meta_data.pop("data", {})
 

@@ -30,10 +30,16 @@ def test_seconds_to_string(seconds, expected):
 def test_get_run_data_csv_path(log_basic_config_reader):
     config, config_reader = log_basic_config_reader
 
-    expected_path = os.path.join(
-        os.path.dirname(config_reader.data["log_dir"]), "run_data.csv"
-    )
+    expected_path = os.path.join(config_reader.data["log_dir"], "run_data.csv")
     actual_path = get_run_data_csv_path(config_reader)
+
+    assert expected_path == actual_path
+
+    config_reader.data["log_dir"] = os.path.join(
+        config_reader.data["log_dir"], "test0_dd10_123"
+    )
+
+    actual_path = get_run_data_csv_path(config_reader, has_subdir=True)
 
     assert expected_path == actual_path
 
