@@ -281,8 +281,8 @@ class TrainingThread(threading.Thread):
             self.script_name, config_path, self.name, self.thread_id
         )
 
-        if self.config["gpu"] is not None:
-            command += ' --gpu "{}"'.format(self.config["gpu"])
+        if self.config["gpu_id"] is not None:
+            command += ' --gpu "{}"'.format(self.config["gpu_id"])
 
         return command
 
@@ -419,7 +419,7 @@ class Runner:
 
             if len(self.run_configs) > 0:
                 config = self.run_configs.pop()
-                config["gpu"] = gpu
+                config["gpu_id"] = gpu
 
                 training = TrainingThread(thread_id, config, script_name, self.log_keys)
                 training.start()
