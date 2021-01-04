@@ -46,9 +46,14 @@ def seconds_to_string(seconds):
 csv_lock = threading.Lock()
 
 
-def config_to_csv(config_reader):
+def get_run_data_csv_path(config_reader):
     log_dir = os.path.dirname(config_reader.data["log_dir"])
-    fname = os.path.join(log_dir, "run_data.csv")
+    path = os.path.join(log_dir, "run_data.csv")
+    return path
+
+
+def config_to_csv(config_reader):
+    fname = get_run_data_csv_path(config_reader)
 
     run_data = config_reader.meta_data.pop("data", {})
 
@@ -66,6 +71,18 @@ def config_to_csv(config_reader):
             csv_df = pd.DataFrame(config_reader.data, index=[0])
 
         csv_df.to_csv(fname, header=True, mode="w", encoding="utf-8", index=False)
+
+
+def get_num_completed_runs(config_reader):
+    path = get_run_data_csv_path(config_reader)
+
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            for i, l in enumerate(f):
+                pass
+            return i
+    else:
+        return 0
 
 
 class MemoryTrace(threading.Thread):
@@ -329,7 +346,7 @@ class Runner:
         )
 
         main_thread = threading.current_thread()
-        thread_id = 0
+        thread_id = get_num_completed_runs(self.config)
         gpu_mapping = {}
 
         if max_threads == 1:
