@@ -7,6 +7,7 @@
 
 import os
 import threading
+from copy import deepcopy
 
 import pandas as pd
 import pytest
@@ -82,6 +83,31 @@ def test_config_to_csv(log_basic_config_reader):
     records = df.to_dict("records")
 
     assert 1 == len(records)
+
+    for record in records:
+        for key in config_reader.data:
+            assert config_reader.data[key] == record[key]
+
+
+def test_finished_run_config_to_csv(finished_run_config_reader):
+    config, config_reader = finished_run_config_reader
+    log_dir = os.path.dirname(config_reader.data["log_dir"])
+
+    run_data = deepcopy(config_reader.meta_data["data"])
+
+    assert len(config_reader.meta_data["data"]) > 0
+
+    config_to_csv(config_reader)
+
+    for key in run_data:
+        assert "run_" + key in config_reader.data
+
+    df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
+
+    for key in config_reader.data:
+        assert key in df.head()
+
+    records = df.to_dict("records")
 
     for record in records:
         for key in config_reader.data:

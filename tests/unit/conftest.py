@@ -43,3 +43,24 @@ def log_basic_config_reader():
 
     close_tmpfile(path)
     shutil.rmtree("test")
+
+
+@pytest.fixture(scope="class")
+def finished_run_config_reader():
+    config = {
+        "data_name": "test",
+        "log_dir": "test/logs",
+        "data_dir": "foo",
+        "batch_size": 32,
+        "epochs": 10,
+        "meta": {"data": {"results": 10, "run_time": 1000}},
+    }
+
+    path = make_tmpfile(config)
+    config_reader = ConfigReader(path)
+    os.makedirs(config_reader.data["log_dir"])
+
+    yield config, config_reader
+
+    close_tmpfile(path)
+    shutil.rmtree("test")
