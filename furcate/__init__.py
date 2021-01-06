@@ -7,7 +7,7 @@
 from importlib import import_module
 
 from .fork import Fork  # noqa. F401
-from .gpu_helper import get_gpu_stats  # noqa. F401
+from .util import get_gpu_stats  # noqa. F401
 
 # Import different versions of furcate with specific frameworks overriding base furcate
 modules = ["furcate.furcate-tf.fork"]

@@ -12,13 +12,12 @@ import subprocess
 import tempfile
 import threading
 import time
-import tracemalloc
 from datetime import datetime
 
 import pandas as pd
 
 from .config_reader import ConfigReader
-from .gpu_helper import get_gpu_stats
+from .util import MemoryTrace
 
 logger = logging.getLogger(__name__)
 
@@ -86,106 +85,6 @@ def get_num_completed_runs(config_reader):
             return i
     else:
         return 0
-
-
-class MemoryTrace(threading.Thread):
-    # https://tech.buzzfeed.com/finding-and-fixing-memory-leaks-in-python-413ce4266e7d
-
-    def __init__(self, enabled, delay=300, top=10, trace=1):
-        """
-        Log memory usage on a delay.
-
-        :param delay: in seconds (int)
-        :param top: number of top allocations to list (int)
-        :param trace: number of top allocations to trace (int)
-        :return: None
-        """
-        super().__init__()
-
-        self.enabled = enabled
-        self.delay = delay
-        self.top = top
-        self.trace = trace
-
-        self.setDaemon(True)
-        self._event = threading.Event()
-
-        self._running = False
-        self._start_stats = None
-        self._prev_stats = None
-        self._snapshot_lock = threading.Lock()
-
-        self.start()
-
-    def run(self):
-        if self.enabled:
-            self._running = True
-
-            logger.debug("Starting MemoryTrace")
-            tracemalloc.start(25)
-            self._start_stats = tracemalloc.take_snapshot()
-            self._prev_stats = self._start_stats
-
-            while self._running:
-                self._event.wait(self.delay)
-                self.snapshot()
-
-    def snapshot(self, title="Snapshot"):
-        if self.enabled:
-            with self._snapshot_lock:
-                current = tracemalloc.take_snapshot()
-
-                if title:
-                    logger.debug("------ %s ------", title)
-
-                # compare current snapshot to starting snapshot
-                stats = current.compare_to(self._start_stats, "filename")
-
-                # compare current snapshot to previous snapshot
-                prev_stats = current.compare_to(self._prev_stats, "lineno")
-
-                logger.debug("GPU Stats")
-                for gpu in get_gpu_stats():
-                    logger.debug(
-                        "gpu_stats id={}, name={}, mem_used={}, mem_total={}, mem_util={} %, volatile_gpu={}, temp={} C".format(
-                            gpu.id,
-                            gpu.name,
-                            gpu.memory_used,
-                            gpu.memory_total,
-                            int(gpu.memory_util * 100),
-                            gpu.util,
-                            gpu.temperature,
-                        )
-                    )
-
-                logger.debug("Top Diffs since Start")
-                for i, stat in enumerate(stats[: self.top], 1):
-                    logger.debug("top_diffs i=%d, stat=%s", i, str(stat))
-
-                logger.debug("Top Incremental")
-                for i, stat in enumerate(prev_stats[: self.top], 1):
-                    logger.debug("top_incremental i=%d, stat=%s", i, str(stat))
-
-                logger.debug("Top Current")
-                for i, stat in enumerate(current.statistics("filename")[: self.top], 1):
-                    logger.debug("top_current i=%d, stat=%s", i, str(stat))
-
-                traces = current.statistics("traceback")
-                for stat in traces[: self.trace]:
-                    logger.debug(
-                        "traceback memory_blocks=%d, size_kB=%d",
-                        stat.count,
-                        stat.size / 1024,
-                    )
-                    for line in stat.traceback.format():
-                        logger.debug(line)
-
-                self._prev_stats = current
-
-    def stop(self):
-        logger.debug("Stopping MemoryTrace")
-        self._running = False
-        self._event.set()
 
 
 class ConfigUpdater(threading.Thread):

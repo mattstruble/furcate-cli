@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .config_reader import ConfigReader
-from .gpu_helper import get_gpu_stats
 from .runner import Runner, seconds_to_string
+from .util import get_gpu_stats
 
 logger = logging.getLogger(__name__)
 
