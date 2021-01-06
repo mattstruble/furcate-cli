@@ -16,7 +16,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from .config_reader import ConfigReader
+from .config_reader import ConfigReader, ConfigWatcher
 from .util import MemoryTrace
 
 logger = logging.getLogger(__name__)
@@ -85,66 +85,6 @@ def get_num_completed_runs(config_reader):
             return i
     else:
         return 0
-
-
-class ConfigUpdater(threading.Thread):
-    def __init__(self, config, refresh_rate=60):
-        threading.Thread.__init__(self)
-        self.setDaemon(True)
-
-        self.config_path = config.filename
-        self.config = config
-        self.refresh_rate = refresh_rate
-        self.flagged = False
-
-        self._remove_completed_runs()
-
-        self._mtime = os.path.getmtime(self.config_path)
-        self._running = True
-        self._config_lock = threading.Lock()
-        self._event = threading.Event()
-
-    def run(self):
-        while self._running:
-            self._event.wait(self.refresh_rate)
-
-            if self._mtime != os.path.getmtime(self.config_path):
-                logger.info(
-                    "Detected change in %s, reloading configurations.", self.config_path
-                )
-                self._mtime = os.path.getmtime(self.config_path)
-                self.flagged = True
-
-                with self._config_lock:
-                    self.config = ConfigReader(self.config_path)
-                    self._remove_completed_runs()
-
-    def _remove_completed_runs(self):
-        run_configs, _ = self.config.gen_run_configs()
-        log_dir = run_configs[0]["log_dir"]
-
-        if os.path.exists(os.path.join(log_dir, "run_data.csv")):
-            df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
-            logger.info(
-                "Detected previous runs, removing %d configuration(s).", len(df)
-            )
-            for _, row in df.iterrows():
-                run_dict = row.to_dict()
-                self.config.remove_completed_runs(run_dict)
-
-    def reset_flagged(self):
-        self.flagged = False
-
-    def get_config(self):
-        with self._config_lock:
-            config = self.config
-
-        return config
-
-    def stop(self):
-        logger.debug("Stopping ConfigUpdater")
-        self._running = False
-        self._event.set()
 
 
 class TrainingThread(threading.Thread):
@@ -225,8 +165,8 @@ class TrainingThread(threading.Thread):
 
 class Runner:
     def __init__(self, config):
-        self.config_updater = ConfigUpdater(config)
-        self.config = self.config_updater.get_config()
+        self.config_watcher = ConfigWatcher(config)
+        self.config = self.config_watcher.get_config()
         self.meta = config.meta_data
 
         self.run_configs, self.log_keys = self.config.gen_run_configs()
@@ -258,7 +198,7 @@ class Runner:
         avg_seconds = 0
         sleep_seconds = 60
 
-        self.config_updater.start()
+        self.config_watcher.start()
 
         while len(self.run_configs) > 0 or len(gpu_mapping) > 0:
             while (
@@ -274,15 +214,15 @@ class Runner:
 
                 time.sleep(sleep_seconds)
 
-                if self.config_updater.flagged:
-                    self.config = self.config_updater.get_config()
+                if self.config_watcher.flagged:
+                    self.config = self.config_watcher.get_config()
                     logger.debug("Config Updater Flagged")
                     for t, (gpu, config) in gpu_mapping.items():
                         logger.debug("Removing run: [%s]", str(config))
                         self.config.remove_completed_runs(config)
                         self.run_configs, _ = self.config.gen_run_configs()
 
-                    self.config_updater.reset_flagged()
+                    self.config_watcher.reset_flagged()
 
             to_del = []
             for t, (gpu, config) in gpu_mapping.items():
@@ -330,7 +270,7 @@ class Runner:
                     "Started thread {}: [{}]".format(thread_id, str(config))
                 )
 
-        self.config_updater.stop()
+        self.config_watcher.stop()
         mem_trace.stop()
         for t in threading.enumerate():
             if t is not main_thread:

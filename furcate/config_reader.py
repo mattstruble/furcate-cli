@@ -7,7 +7,13 @@
 import copy
 import json
 import logging
+import os
 import random
+import threading
+
+import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigReader:
@@ -37,7 +43,6 @@ class ConfigReader:
 
     # Bare minimum configuration keys required to run a default training fork
     _REQUIRED_KEYS = ["data_name", "data_dir", "batch_size", "epochs"]
-    logger = logging.getLogger(__name__)
 
     def __init__(self, filename):
         """
@@ -207,3 +212,63 @@ class ConfigReader:
                 )
                 for remove in to_remove:
                     self.run_configs.remove(remove)
+
+
+class ConfigWatcher(threading.Thread):
+    def __init__(self, config_reader, refresh_rate=60):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+
+        self.config_path = config_reader.filename
+        self.config_reader = config_reader
+        self.refresh_rate = refresh_rate
+        self.flagged = False
+
+        self._remove_completed_runs()
+
+        self._mtime = os.path.getmtime(self.config_path)
+        self._running = True
+        self._config_lock = threading.Lock()
+        self._event = threading.Event()
+
+    def run(self):
+        while self._running:
+            self._event.wait(self.refresh_rate)
+
+            if self._mtime != os.path.getmtime(self.config_path):
+                logger.info(
+                    "Detected change in %s, reloading configurations.", self.config_path
+                )
+                self._mtime = os.path.getmtime(self.config_path)
+                self.flagged = True
+
+                with self._config_lock:
+                    self.config_reader = ConfigReader(self.config_path)
+                    self._remove_completed_runs()
+
+    def _remove_completed_runs(self):
+        run_configs, _ = self.config_reader.gen_run_configs()
+        log_dir = run_configs[0]["log_dir"]
+
+        if os.path.exists(os.path.join(log_dir, "run_data.csv")):
+            df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
+            logger.info(
+                "Detected previous runs, removing %d configuration(s).", len(df)
+            )
+            for _, row in df.iterrows():
+                run_dict = row.to_dict()
+                self.config_reader.remove_completed_runs(run_dict)
+
+    def reset_flagged(self):
+        self.flagged = False
+
+    def get_config(self):
+        with self._config_lock:
+            config = self.config_reader
+
+        return config
+
+    def stop(self):
+        logger.debug("Stopping ConfigUpdater")
+        self._running = False
+        self._event.set()
