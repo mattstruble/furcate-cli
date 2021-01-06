@@ -13,8 +13,6 @@ import threading
 
 import pandas as pd
 
-logger = logging.getLogger(__name__)
-
 
 class ConfigReader:
     """
@@ -43,6 +41,7 @@ class ConfigReader:
 
     # Bare minimum configuration keys required to run a default training fork
     _REQUIRED_KEYS = ["data_name", "data_dir", "batch_size", "epochs"]
+    logger = logging.getLogger(__name__)
 
     def __init__(self, filename):
         """
@@ -215,6 +214,8 @@ class ConfigReader:
 
 
 class ConfigWatcher(threading.Thread):
+    logger = logging.getLogger(__name__)
+
     def __init__(self, config_reader, refresh_rate=60):
         threading.Thread.__init__(self)
         self.setDaemon(True)
@@ -236,7 +237,7 @@ class ConfigWatcher(threading.Thread):
             self._event.wait(self.refresh_rate)
 
             if self._mtime != os.path.getmtime(self.config_path):
-                logger.info(
+                self.logger.info(
                     "Detected change in %s, reloading configurations.", self.config_path
                 )
                 self._mtime = os.path.getmtime(self.config_path)
@@ -252,7 +253,7 @@ class ConfigWatcher(threading.Thread):
 
         if os.path.exists(os.path.join(log_dir, "run_data.csv")):
             df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
-            logger.info(
+            self.logger.info(
                 "Detected previous runs, removing %d configuration(s).", len(df)
             )
             for _, row in df.iterrows():
@@ -269,6 +270,6 @@ class ConfigWatcher(threading.Thread):
         return config
 
     def stop(self):
-        logger.debug("Stopping ConfigUpdater")
+        self.logger.debug("Stopping ConfigUpdater")
         self._running = False
         self._event.set()
