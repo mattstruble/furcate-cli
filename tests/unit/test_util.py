@@ -1,9 +1,51 @@
+import os
 import threading
 import time
+from subprocess import PIPE, CalledProcessError, Popen
 
 import pytest
 
-from furcate.util import MemoryTrace
+from furcate.util import MemoryTrace, get_gpu_stats
+
+
+def get_nvidia_gpus():
+    try:
+        stdout, _ = Popen(
+            ["ls -la /dev | grep nvidia[0-9]+"],
+            stdout=PIPE,
+        ).communicate()
+    except (CalledProcessError, FileNotFoundError):
+        return []
+
+    devices = stdout.decode("UTF-8").split(os.linesep)
+
+    ids = [int(s) for s in devices if s.isdigit()]
+
+    return ids
+
+
+def test_get_gpu_stats():
+    """
+    Assert that the gpu stats returns the expected number of GPUS. Best we can do with limited build env is to test if
+    matches the return of a /dev grep.
+    """
+    expected = get_nvidia_gpus()
+    actual = get_gpu_stats()
+
+    assert len(expected) == len(actual)
+
+    for gpu in actual:
+        assert gpu.id in expected
+
+
+def test_get_gpu_stats_no_dups():
+    """
+    Assert that the gpu stats doesn't return duplicates.
+    """
+    gpus = get_gpu_stats()
+    ids = set([gpu.id for gpu in gpus])
+
+    assert len(gpus) == len(ids)
 
 
 class TestMemoryTrace:

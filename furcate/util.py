@@ -224,6 +224,10 @@ def get_gpu_stats():
                     os.environ["systemdrive"]
                 )
             )
+
+            if not os.path.exists(nvidia_smi):
+                logger.warning("Couldn't find nvidia-smi. Can't locate CUDA devices.")
+                return []
     else:
         nvidia_smi = "nvidia-smi"
 
