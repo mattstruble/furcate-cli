@@ -224,10 +224,6 @@ def get_gpu_stats():
                     os.environ["systemdrive"]
                 )
             )
-
-            if not os.path.exists(nvidia_smi):
-                logger.warning("Couldn't find nvidia-smi. Can't locate CUDA devices.")
-                return []
     else:
         nvidia_smi = "nvidia-smi"
 
@@ -240,7 +236,10 @@ def get_gpu_stats():
             ],
             stdout=PIPE,
         ).communicate()
-    except CalledProcessError:
+    except (CalledProcessError, FileNotFoundError):
+        logger.warning(
+            "Couldn't locate CUDA devices using nvidia-smi. Check that nvidia-smi is installed correctly."
+        )
         return []
 
     devices = stdout.decode("UTF-8").split(os.linesep)
