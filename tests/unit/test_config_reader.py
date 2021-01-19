@@ -5,9 +5,11 @@
 # Author: Matt Struble
 # Date: Dec. 30 2020
 
+import threading
+
 import pytest
 
-from furcate.config_reader import ConfigReader
+from furcate.config_reader import ConfigReader, ConfigWatcher
 
 
 @pytest.fixture()
@@ -162,3 +164,9 @@ def test_gen_run_configs(basic_config_reader):
                 break
 
         assert found is True
+
+
+class TestConfigWatcher:
+    def _setup(self, config_reader, refresh_rate=5):
+        self.config_watcher = ConfigWatcher
+        self.event = threading.Event()

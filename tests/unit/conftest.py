@@ -6,6 +6,8 @@
 # Date: Dec. 30 2020
 import os
 import shutil
+import threading
+import time
 
 import pytest
 
@@ -64,3 +66,59 @@ def finished_run_config_reader():
 
     close_tmpfile(path)
     shutil.rmtree("test")
+
+
+@pytest.fixture(scope="class")
+def threading_event(request):
+    request.cls.event = threading.Event()
+
+
+@pytest.mark.usefixtures("threading_event")
+class ThreadHelper:
+    def wait_for_init(self, thread, attr=None, wait_condition=None, timeout_seconds=5):
+        """
+        Waits for MemoryTrace to start and run by checking if the start_stats have been set.
+        :param timeout_seconds: Timeout to wait for thread to start
+        """
+        total_time = 0
+        prev_time = time.time()
+        while getattr(thread, attr) is wait_condition and total_time < timeout_seconds:
+            self.event.wait(1)
+            total_time += time.time() - prev_time
+            prev_time = time.time()
+
+    def wait_for_shutdown(self, thread, timeout_seconds=5):
+        """
+        Waits for MemoryTrace is_alive() to return false.
+        :param timeout_seconds: Timeout to wait for thread to stop.
+        """
+        total_time = 0
+        prev_time = time.time()
+        while thread.is_alive() and total_time < timeout_seconds:
+            self.event.wait(1)
+            total_time += time.time() - prev_time
+            prev_time = time.time()
+
+    def wait_for_thread_update(self, thread, expected_delay, attr=None):
+        timeout = expected_delay * 2
+        wait_time = expected_delay / 3
+        total_time = 0
+        prev_value = getattr(thread, attr)
+        prev_time = time.time()
+
+        while prev_value == getattr(thread, attr) and total_time < timeout:
+            self.event.wait(wait_time)
+            total_time += time.time() - prev_time
+            prev_time = time.time()
+
+    def wait_for_delay(self, delay):
+        """
+        Waits for MemoryTrace to change stats based upon the configured delay. Timesout after delay*2 seconds.
+        :param prev_stats: Previous stats to compare to current thread stats
+        """
+        total_time = 0
+        prev_time = time.time()
+        while total_time < delay:
+            self.event.wait(delay / 3)
+            total_time += time.time() - prev_time
+            prev_time = time.time()

@@ -7,6 +7,8 @@ import pytest
 
 from furcate.util import MemoryTrace, get_gpu_stats
 
+from .conftest import ThreadHelper
+
 
 def get_nvidia_gpus():
     try:
@@ -48,7 +50,7 @@ def test_get_gpu_stats_no_dups():
     assert len(gpus) == len(ids)
 
 
-class TestMemoryTrace:
+class TestMemoryTrace(ThreadHelper):
     def _setup(self, enabled, delay):
         """
         Create the memory trace class object and instantiate the threading event for waiting.
@@ -58,43 +60,16 @@ class TestMemoryTrace:
         self.mem_trace = MemoryTrace(enabled, delay)
         self.event = threading.Event()
 
-    def _wait_for_init(self, timeout_seconds):
-        """
-        Waits for MemoryTrace to start and run by checking if the start_stats have been set.
-        :param timeout_seconds: Timeout to wait for thread to start
-        """
-        total_time = 0
-        prev_time = time.time()
-        while self.mem_trace._start_stats is None and total_time < timeout_seconds:
-            self.event.wait(1)
-            total_time += time.time() - prev_time
-            prev_time = time.time()
+    def _wait_for_init(self):
+        self.wait_for_init(self.mem_trace, attr="_start_stats", wait_condition=None)
 
-    def _wait_for_shutdown(self, timeout_seconds):
-        """
-        Waits for MemoryTrace is_alive() to return false.
-        :param timeout_seconds: Timeout to wait for thread to stop.
-        """
-        total_time = 0
-        prev_time = time.time()
-        while self.mem_trace.is_alive() and total_time < timeout_seconds:
-            self.event.wait(1)
-            total_time += time.time() - prev_time
-            prev_time = time.time()
+    def _wait_for_thread_update(self):
+        self.wait_for_thread_update(
+            self.mem_trace, expected_delay=self.mem_trace.delay, attr="_prev_stats"
+        )
 
-    def _wait_for_delay(self, prev_stats):
-        """
-        Waits for MemoryTrace to change stats based upon the configured delay. Timesout after delay*2 seconds.
-        :param prev_stats: Previous stats to compare to current thread stats
-        """
-        timeout = self.mem_trace.delay * 2
-        wait_time = self.mem_trace.delay / 3
-        total_time = 0
-        prev_time = time.time()
-        while self.mem_trace._prev_stats == prev_stats and total_time < timeout:
-            self.event.wait(wait_time)
-            total_time += time.time() - prev_time
-            prev_time = time.time()
+    def _wait_for_shutdown(self):
+        self.wait_for_shutdown(self.mem_trace)
 
     def test_disabled_init(self):
         """
@@ -127,13 +102,13 @@ class TestMemoryTrace:
         assert self.mem_trace.enabled is True
         assert self.mem_trace._running is True
 
-        self._wait_for_init(5)
+        self._wait_for_init()
 
         assert self.mem_trace._start_stats is not None
         assert self.mem_trace._prev_stats == self.mem_trace._start_stats
         assert self.mem_trace.is_alive() is True
 
-        self._wait_for_delay(self.mem_trace._start_stats)
+        self._wait_for_thread_update()
 
         assert self.mem_trace._prev_stats != self.mem_trace._start_stats
 
@@ -147,13 +122,13 @@ class TestMemoryTrace:
         :return:
         """
         self._setup(True, delay)
-        self._wait_for_init(5)
+        self._wait_for_init()
 
         prev_stats = self.mem_trace._start_stats
 
         for _ in range(3):
             start_time = time.time()
-            self._wait_for_delay(prev_stats)
+            self._wait_for_thread_update()
             time_taken = time.time() - start_time
 
             assert time_taken >= self.mem_trace.delay
@@ -170,7 +145,7 @@ class TestMemoryTrace:
 
         assert self.mem_trace._prev_stats == self.mem_trace._start_stats
 
-        self._wait_for_init(5)
+        self._wait_for_init()
 
         self.mem_trace.snapshot("test")
 
@@ -188,5 +163,5 @@ class TestMemoryTrace:
         """
         self.mem_trace.stop()
         assert self.mem_trace._running is False
-        self._wait_for_shutdown(5)
+        self._wait_for_shutdown()
         assert self.mem_trace.is_alive() is False
