@@ -7,10 +7,14 @@
 import copy
 import json
 import logging
+import os
 import random
+import threading
+
+import pandas as pd
 
 
-class ConfigReader(object):
+class ConfigReader:
     """
     A class to read and handle configuration data.
 
@@ -50,6 +54,7 @@ class ConfigReader(object):
 
         self.run_configs = []
         self.permutable_keys = set()
+        self._generated = False
 
     def gen_run_configs(self):
         """
@@ -57,10 +62,11 @@ class ConfigReader(object):
         remaining permutations.
         :return: All configuration permutations (list), Data keys that had multiple permutations (Set)
         """
-        if len(self.run_configs) == 0:
-            self._gen_run_configs(self.data)
+        if not self._generated:
+            self.run_configs = self._gen_run_configs(self.data)
             self._exclude_configs()
             random.shuffle(self.run_configs)
+            self._generated = True
 
         return self.run_configs, self.permutable_keys
 
@@ -85,6 +91,15 @@ class ConfigReader(object):
         self.data.setdefault("test_prefix", self.data["data_name"] + ".test")
         self.data.setdefault("valid_prefix", self.data["data_name"] + ".valid")
 
+    def _validate_data(self, data, fname):
+        for key in self._REQUIRED_KEYS:
+            if key not in data.keys():
+                raise ValueError(
+                    "The configuration file '{}' does not contain the required key: {}".format(
+                        fname, key
+                    )
+                )
+
     def _load_config(self, fname):
         """
         Loads the passed in json file name into a dictionary and validates that the required keys exist.
@@ -94,13 +109,7 @@ class ConfigReader(object):
         with open(fname) as f:
             data = json.load(f)
 
-        for key in self._REQUIRED_KEYS:
-            if key not in data.keys():
-                raise ValueError(
-                    "The configuration file '{}' does not contain the required key: {}".format(
-                        fname, key
-                    )
-                )
+        self._validate_data(data, fname)
 
         data.setdefault("meta", {})
 
@@ -119,7 +128,7 @@ class ConfigReader(object):
 
         key = enumerated_data[index]["key"]
 
-        if type(enumerated_data[index]["value"]) is list:
+        if isinstance(enumerated_data[index]["value"], list):
             self.permutable_keys.add(key)
             values = enumerated_data[index]["value"]
         else:
@@ -146,7 +155,7 @@ class ConfigReader(object):
         for index, (key, value) in enumerate(data.items()):
             enumerated_data[index] = {"key": key, "value": value}
 
-        self.run_configs = self._gen_config_permutations(0, {}, enumerated_data)
+        return self._gen_config_permutations(0, {}, enumerated_data)
 
     def remove_completed_runs(self, run_dict):
         """
@@ -202,3 +211,65 @@ class ConfigReader(object):
                 )
                 for remove in to_remove:
                     self.run_configs.remove(remove)
+
+
+class ConfigWatcher(threading.Thread):
+    logger = logging.getLogger(__name__)
+
+    def __init__(self, config_reader, refresh_rate=60):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+
+        self.config_path = config_reader.filename
+        self.config_reader = config_reader
+        self.refresh_rate = refresh_rate
+        self.flagged = False
+
+        self._remove_completed_runs()
+
+        self._mtime = os.path.getmtime(self.config_path)
+        self._running = True
+        self._config_lock = threading.Lock()
+        self._event = threading.Event()
+
+    def run(self):
+        while self._running:
+            self._event.wait(self.refresh_rate)
+
+            if self._mtime != os.path.getmtime(self.config_path):
+                self.logger.info(
+                    "Detected change in %s, reloading configurations.", self.config_path
+                )
+                self._mtime = os.path.getmtime(self.config_path)
+                self.flagged = True
+
+                with self._config_lock:
+                    self.config_reader = ConfigReader(self.config_path)
+                    self._remove_completed_runs()
+
+    def _remove_completed_runs(self):
+        run_configs, _ = self.config_reader.gen_run_configs()
+        log_dir = run_configs[0]["log_dir"]
+
+        if os.path.exists(os.path.join(log_dir, "run_data.csv")):
+            df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
+            self.logger.info(
+                "Detected previous runs, removing %d configuration(s).", len(df)
+            )
+            for _, row in df.iterrows():
+                run_dict = row.to_dict()
+                self.config_reader.remove_completed_runs(run_dict)
+
+    def reset_flagged(self):
+        self.flagged = False
+
+    def get_config(self):
+        with self._config_lock:
+            config = self.config_reader
+
+        return config
+
+    def stop(self):
+        self.logger.debug("Stopping ConfigUpdater")
+        self._running = False
+        self._event.set()

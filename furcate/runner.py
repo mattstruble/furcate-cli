@@ -8,18 +8,16 @@ import gc
 import json
 import logging
 import os
-import re
 import subprocess
 import tempfile
 import threading
 import time
-import tracemalloc
 from datetime import datetime
 
 import pandas as pd
 
-from .config_reader import ConfigReader
-from .gpu_helper import get_gpu_stats
+from .config_reader import ConfigReader, ConfigWatcher
+from .util import MemoryTrace
 
 logger = logging.getLogger(__name__)
 
@@ -47,186 +45,46 @@ def seconds_to_string(seconds):
 csv_lock = threading.Lock()
 
 
-def config_to_csv(config):
-    log_dir = os.path.dirname(config.data["log_dir"])
-    fname = os.path.join(log_dir, "run_data.csv")
+def get_run_data_csv_path(config_reader, has_subdir=False):
+    log_dir = config_reader.data["log_dir"]
+    if has_subdir:
+        log_dir = os.path.dirname(log_dir)
 
-    run_data = config.meta_data.pop("data", {})
+    path = os.path.join(log_dir, "run_data.csv")
+    return path
+
+
+def config_to_csv(config_reader, has_subdir=True):
+    fname = get_run_data_csv_path(config_reader, has_subdir)
+
+    run_data = config_reader.meta_data.pop("data", {})
 
     # Package metadata up to the data layer for writing to csv
     for key, value in run_data.items():
-        config.data["run_" + key] = value
+        config_reader.data["run_" + key] = value
 
-    config.data["meta"] = str(config.data["meta"])
+    config_reader.data["meta"] = str(config_reader.data["meta"])
 
     with csv_lock:
         if os.path.exists(fname):
             csv_df = pd.read_csv(fname)
-            csv_df = csv_df.append(config.data, ignore_index=True)
+            csv_df = csv_df.append(config_reader.data, ignore_index=True)
         else:
-            csv_df = pd.DataFrame.from_dict(config.data)
+            csv_df = pd.DataFrame(config_reader.data, index=[0])
 
         csv_df.to_csv(fname, header=True, mode="w", encoding="utf-8", index=False)
 
 
-class MemoryTrace(threading.Thread):
-    # https://tech.buzzfeed.com/finding-and-fixing-memory-leaks-in-python-413ce4266e7d
+def get_num_completed_runs(config_reader):
+    path = get_run_data_csv_path(config_reader)
 
-    def __init__(self, enabled, delay=300, top=10, trace=1):
-        """
-        Log memory usage on a delay.
-
-        :param delay: in seconds (int)
-        :param top: number of top allocations to list (int)
-        :param trace: number of top allocations to trace (int)
-        :return: None
-        """
-        super().__init__()
-
-        self.enabled = enabled
-        self.delay = delay
-        self.top = top
-        self.trace = trace
-
-        self.setDaemon(True)
-        self._event = threading.Event()
-
-        self._running = False
-        self._start_stats = None
-        self._prev_stats = None
-        self._snapshot_lock = threading.Lock()
-
-        self.start()
-
-    def run(self):
-        if self.enabled:
-            self._running = True
-
-            logger.debug("Starting MemoryTrace")
-            tracemalloc.start(25)
-            self._start_stats = tracemalloc.take_snapshot()
-            self._prev_stats = self._start_stats
-
-            while self._running:
-                self._event.wait(self.delay)
-                self.snapshot()
-
-    def snapshot(self, title="Snapshot"):
-        if self.enabled:
-            with self._snapshot_lock:
-                current = tracemalloc.take_snapshot()
-
-                if title:
-                    logger.debug("------ %s ------", title)
-
-                # compare current snapshot to starting snapshot
-                stats = current.compare_to(self._start_stats, "filename")
-
-                # compare current snapshot to previous snapshot
-                prev_stats = current.compare_to(self._prev_stats, "lineno")
-
-                logger.debug("GPU Stats")
-                for gpu in get_gpu_stats():
-                    logger.debug(
-                        "gpu_stats id={}, name={}, mem_used={}, mem_total={}, mem_util={} %, volatile_gpu={}, temp={} C".format(
-                            gpu.id,
-                            gpu.name,
-                            gpu.memory_used,
-                            gpu.memory_total,
-                            int(gpu.memory_util * 100),
-                            gpu.util,
-                            gpu.temperature,
-                        )
-                    )
-
-                logger.debug("Top Diffs since Start")
-                for i, stat in enumerate(stats[: self.top], 1):
-                    logger.debug("top_diffs i=%d, stat=%s", i, str(stat))
-
-                logger.debug("Top Incremental")
-                for i, stat in enumerate(prev_stats[: self.top], 1):
-                    logger.debug("top_incremental i=%d, stat=%s", i, str(stat))
-
-                logger.debug("Top Current")
-                for i, stat in enumerate(current.statistics("filename")[: self.top], 1):
-                    logger.debug("top_current i=%d, stat=%s", i, str(stat))
-
-                traces = current.statistics("traceback")
-                for stat in traces[: self.trace]:
-                    logger.debug(
-                        "traceback memory_blocks=%d, size_kB=%d",
-                        stat.count,
-                        stat.size / 1024,
-                    )
-                    for line in stat.traceback.format():
-                        logger.debug(line)
-
-                self._prev_stats = current
-
-    def stop(self):
-        logger.debug("Stopping MemoryTrace")
-        self._running = False
-        self._event.set()
-
-
-class ConfigUpdater(threading.Thread):
-    def __init__(self, config, refresh_rate=60):
-        threading.Thread.__init__(self)
-        self.setDaemon(True)
-
-        self.config_path = config.filename
-        self.config = config
-        self.refresh_rate = refresh_rate
-        self.flagged = False
-
-        self._remove_completed_runs()
-
-        self._mtime = os.path.getmtime(self.config_path)
-        self._running = True
-        self._config_lock = threading.Lock()
-        self._event = threading.Event()
-
-    def run(self):
-        while self._running:
-            self._event.wait(self.refresh_rate)
-
-            if self._mtime != os.path.getmtime(self.config_path):
-                logger.info(
-                    "Detected change in %s, reloading configurations.", self.config_path
-                )
-                self._mtime = os.path.getmtime(self.config_path)
-                self.flagged = True
-
-                with self._config_lock:
-                    self.config = ConfigReader(self.config_path)
-                    self._remove_completed_runs()
-
-    def _remove_completed_runs(self):
-        run_configs, _ = self.config.gen_run_configs()
-        log_dir = run_configs[0]["log_dir"]
-
-        if os.path.exists(os.path.join(log_dir, "run_data.csv")):
-            df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
-            logger.info(
-                "Detected previous runs, removing %d configuration(s).", len(df)
-            )
-            for _, row in df.iterrows():
-                run_dict = row.to_dict()
-                self.config.remove_completed_runs(run_dict)
-
-    def reset_flagged(self):
-        self.flagged = False
-
-    def get_config(self):
-        with self._config_lock:
-            config = self.config
-
-        return config
-
-    def stop(self):
-        logger.debug("Stopping ConfigUpdater")
-        self._running = False
-        self._event.set()
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            for i, l in enumerate(f):
+                pass
+            return i
+    else:
+        return 0
 
 
 class TrainingThread(threading.Thread):
@@ -234,13 +92,14 @@ class TrainingThread(threading.Thread):
         threading.Thread.__init__(self)
         self.setDaemon(True)
 
-        self.threadID = id
+        self.thread_id = id
         self.config = config
         self.script_name = script_name
         self.log_keys = log_keys
 
         self.dir_name = os.path.basename(self.config["data_dir"])
         self.name = self.config["data_name"] + str(id)
+        self.run_time = datetime.now() - datetime.now()
 
     def _gen_log_dir(self):
         folder = "{}_{}".format(self.name, self.dir_name)
@@ -258,11 +117,11 @@ class TrainingThread(threading.Thread):
 
     def _generate_run_command(self, config_path):
         command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
-            self.script_name, config_path, self.name, self.threadID
+            self.script_name, config_path, self.name, self.thread_id
         )
 
-        if self.config["gpu"] is not None:
-            command += ' --gpu "{}"'.format(self.config["gpu"])
+        if self.config["gpu_id"] is not None:
+            command += ' --gpu "{}"'.format(self.config["gpu_id"])
 
         return command
 
@@ -304,10 +163,10 @@ class TrainingThread(threading.Thread):
         self.run_time = datetime.now() - start_time
 
 
-class Runner(object):
+class Runner:
     def __init__(self, config):
-        self.config_updater = ConfigUpdater(config)
-        self.config = self.config_updater.get_config()
+        self.config_watcher = ConfigWatcher(config)
+        self.config = self.config_watcher.get_config()
         self.meta = config.meta_data
 
         self.run_configs, self.log_keys = self.config.gen_run_configs()
@@ -329,7 +188,7 @@ class Runner(object):
         )
 
         main_thread = threading.current_thread()
-        thread_id = 0
+        thread_id = get_num_completed_runs(self.config)
         gpu_mapping = {}
 
         if max_threads == 1:
@@ -339,7 +198,7 @@ class Runner(object):
         avg_seconds = 0
         sleep_seconds = 60
 
-        self.config_updater.start()
+        self.config_watcher.start()
 
         while len(self.run_configs) > 0 or len(gpu_mapping) > 0:
             while (
@@ -355,15 +214,15 @@ class Runner(object):
 
                 time.sleep(sleep_seconds)
 
-                if self.config_updater.flagged:
-                    self.config = self.config_updater.get_config()
+                if self.config_watcher.flagged:
+                    self.config = self.config_watcher.get_config()
                     logger.debug("Config Updater Flagged")
                     for t, (gpu, config) in gpu_mapping.items():
                         logger.debug("Removing run: [%s]", str(config))
                         self.config.remove_completed_runs(config)
                         self.run_configs, _ = self.config.gen_run_configs()
 
-                    self.config_updater.reset_flagged()
+                    self.config_watcher.reset_flagged()
 
             to_del = []
             for t, (gpu, config) in gpu_mapping.items():
@@ -380,7 +239,7 @@ class Runner(object):
                     )
                     logger.info(
                         "Thread %d finished - %s - %d configs remaining - est. total time remaining: %s",
-                        t.threadID,
+                        t.thread_id,
                         thread_time,
                         len(self.run_configs),
                         remaining_time,
@@ -399,7 +258,7 @@ class Runner(object):
 
             if len(self.run_configs) > 0:
                 config = self.run_configs.pop()
-                config["gpu"] = gpu
+                config["gpu_id"] = gpu
 
                 training = TrainingThread(thread_id, config, script_name, self.log_keys)
                 training.start()
@@ -411,7 +270,7 @@ class Runner(object):
                     "Started thread {}: [{}]".format(thread_id, str(config))
                 )
 
-        self.config_updater.stop()
+        self.config_watcher.stop()
         mem_trace.stop()
         for t in threading.enumerate():
             if t is not main_thread:
@@ -419,7 +278,7 @@ class Runner(object):
 
     def _get_max_threads(self, gpus):
         if self.meta and "max_threads" in self.meta:
-            max_threads = min(1, self.meta["max_threads"])
+            max_threads = max(1, self.meta["max_threads"])
 
             if max_threads > len(gpus) > 1:
                 logger.warning(
