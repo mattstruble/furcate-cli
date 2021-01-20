@@ -12,7 +12,7 @@ import time
 import pytest
 
 from furcate.config_reader import ConfigReader
-from tests.util import close_tmpfile, make_tmpfile
+from tests.util import close_tmpfile, make_tmpdir, make_tmpfile
 
 
 @pytest.fixture(scope="class")
@@ -29,9 +29,10 @@ def basic_config_reader():
 
 @pytest.fixture(scope="class")
 def log_basic_config_reader():
+    log_dir = make_tmpdir()
     config = {
         "data_name": "test",
-        "log_dir": "test/logs",
+        "log_dir": log_dir,
         "data_dir": "foo",
         "batch_size": 32,
         "epochs": 10,
@@ -39,12 +40,11 @@ def log_basic_config_reader():
 
     path = make_tmpfile(config)
     config_reader = ConfigReader(path)
-    os.makedirs(config_reader.data["log_dir"])
 
     yield config, config_reader
 
     close_tmpfile(path)
-    shutil.rmtree("test")
+    close_tmpfile(log_dir)
 
 
 @pytest.fixture(scope="class")
@@ -82,7 +82,9 @@ class ThreadHelper:
         """
         total_time = 0
         prev_time = time.time()
-        while getattr(thread, attr) is wait_condition and total_time < timeout_seconds:
+        while (
+            attr and getattr(thread, attr) is wait_condition
+        ) and total_time < timeout_seconds:
             self.event.wait(1)
             total_time += time.time() - prev_time
             prev_time = time.time()

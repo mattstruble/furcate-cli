@@ -166,7 +166,7 @@ class TrainingThread(threading.Thread):
 class Runner:
     def __init__(self, config):
         self.config_watcher = ConfigWatcher(config)
-        self.config = self.config_watcher.get_config()
+        self.config = self.config_watcher.get_config_reader()
         self.meta = config.meta_data
 
         self.run_configs, self.log_keys = self.config.gen_run_configs()
@@ -215,7 +215,7 @@ class Runner:
                 time.sleep(sleep_seconds)
 
                 if self.config_watcher.flagged:
-                    self.config = self.config_watcher.get_config()
+                    self.config = self.config_watcher.get_config_reader()
                     logger.debug("Config Updater Flagged")
                     for t, (gpu, config) in gpu_mapping.items():
                         logger.debug("Removing run: [%s]", str(config))

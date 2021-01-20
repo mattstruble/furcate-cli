@@ -5,11 +5,15 @@
 # Author: Matt Struble
 # Date: Dec. 30 2020
 
-import threading
+import csv
+import os
+from pathlib import Path
 
 import pytest
 
 from furcate.config_reader import ConfigReader, ConfigWatcher
+
+from .conftest import ThreadHelper
 
 
 @pytest.fixture()
@@ -166,7 +170,116 @@ def test_gen_run_configs(basic_config_reader):
         assert found is True
 
 
-class TestConfigWatcher:
-    def _setup(self, config_reader, refresh_rate=5):
-        self.config_watcher = ConfigWatcher
-        self.event = threading.Event()
+@pytest.fixture(params=["log_basic_config_reader"])
+def config_watcher_basic_init(request):
+    config, config_reader = request.getfixturevalue(request.param)
+    request.cls.config_reader = config_reader
+    request.cls.config = config
+    yield
+
+
+@pytest.mark.usefixtures("config_watcher_basic_init")
+class TestConfigWatcher(ThreadHelper):
+    def _setup(self, refresh_rate=5):
+        self.config_watcher = ConfigWatcher(self.config_reader, refresh_rate)
+        self.config_watcher.start()
+
+    def _wait_for_init(self):
+        self.wait_for_init(self.config_watcher, timeout_seconds=2)
+
+    def _wait_for_thread_update(self):
+        self.wait_for_thread_update(
+            self.config_watcher,
+            expected_delay=self.config_watcher.refresh_rate,
+            attr="_mtime",
+        )
+
+    def _wait_for_shutdown(self):
+        self.wait_for_shutdown(self.config_watcher)
+
+    def _teardown(self):
+        """
+        Stops the MemoryTrace thread and asserts that it shutsdown properly.
+        """
+        self.config_watcher.stop()
+        assert self.config_watcher._running is False
+        self._wait_for_shutdown()
+        assert self.config_watcher.is_alive() is False
+
+        if os.path.exists(
+            os.path.join(self.config_reader.data["log_dir"], "run_data.csv")
+        ):
+            os.remove(os.path.join(self.config_reader.data["log_dir"], "run_data.csv"))
+
+    def test_get_config_reader(self):
+        self._setup()
+
+        assert self.config_reader == self.config_watcher.get_config_reader()
+
+        self._teardown()
+
+    def test_reset_flagged(self):
+        self._setup()
+
+        assert self.config_watcher.flagged is False
+        self.config_watcher.flagged = True
+        self.config_watcher.reset_flagged()
+        assert self.config_watcher.flagged is False
+
+        self._teardown()
+
+    @pytest.mark.parametrize("refresh_rate", (10, 20))
+    def test_config_update(self, refresh_rate):
+        self._setup(refresh_rate)
+        self._wait_for_init()
+
+        prev_mtime = self.config_watcher._mtime
+
+        self.wait_for_delay(refresh_rate // 3)
+
+        Path(self.config_reader.filename).touch()
+
+        self._wait_for_thread_update()
+
+        assert prev_mtime != self.config_watcher._mtime
+        assert self.config_watcher.flagged is True
+
+        self._teardown()
+
+    def test_remove_completed_runs_on_init(self):
+        self._gen_run_data()
+        self._setup()
+        self._wait_for_init()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+
+        assert len(run_configs) == 0
+
+        self._teardown()
+
+    def test_remove_completed_runs_on_touch(self):
+        self._setup(refresh_rate=30)
+        self._wait_for_init()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+        assert len(run_configs) == 1
+
+        self._gen_run_data()
+        Path(self.config_reader.filename).touch()
+        self._wait_for_thread_update()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+        assert len(run_configs) == 0
+
+        self._teardown()
+
+    def _gen_run_data(self):
+        run_configs, _ = self.config_reader.gen_run_configs()
+        log_dir = self.config_reader.data["log_dir"]
+
+        assert len(run_configs) == 1
+
+        with open(os.path.join(log_dir, "run_data.csv"), "w") as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=self.config_reader.data.keys())
+            writer.writeheader()
+            writer.writerow(self.config_reader.data)

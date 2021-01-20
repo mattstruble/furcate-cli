@@ -263,11 +263,11 @@ class ConfigWatcher(threading.Thread):
     def reset_flagged(self):
         self.flagged = False
 
-    def get_config(self):
+    def get_config_reader(self):
         with self._config_lock:
-            config = self.config_reader
+            config_reader = self.config_reader
 
-        return config
+        return config_reader
 
     def stop(self):
         self.logger.debug("Stopping ConfigUpdater")
