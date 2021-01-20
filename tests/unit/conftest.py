@@ -15,7 +15,7 @@ from furcate.config_reader import ConfigReader
 from tests.util import close_tmpfile, make_tmpdir, make_tmpfile
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture()
 def basic_config_reader():
     config = {"data_name": "test", "data_dir": "foo", "batch_size": 32, "epochs": 10}
 
@@ -27,9 +27,12 @@ def basic_config_reader():
     close_tmpfile(path)
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture()
 def log_basic_config_reader():
-    log_dir = make_tmpdir()
+    base_dir = make_tmpdir()
+    log_dir = os.path.join(base_dir, "logs")
+    os.makedirs(log_dir)
+
     config = {
         "data_name": "test",
         "log_dir": log_dir,
@@ -44,10 +47,10 @@ def log_basic_config_reader():
     yield config, config_reader
 
     close_tmpfile(path)
-    close_tmpfile(log_dir)
+    close_tmpfile(base_dir)
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture()
 def finished_run_config_reader():
     config = {
         "data_name": "test",
