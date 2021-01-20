@@ -228,7 +228,7 @@ class TestConfigWatcher(ThreadHelper):
 
         self._teardown()
 
-    @pytest.mark.parametrize("refresh_rate", (1, 5))
+    @pytest.mark.parametrize("refresh_rate", (5, 10))
     def test_config_update(self, refresh_rate):
         self._setup(refresh_rate)
         self._wait_for_init()
