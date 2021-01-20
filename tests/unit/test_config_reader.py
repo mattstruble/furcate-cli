@@ -191,7 +191,7 @@ class TestConfigWatcher(ThreadHelper):
         self.wait_for_thread_update(
             self.config_watcher,
             expected_delay=self.config_watcher.refresh_rate,
-            attr="_mtime",
+            attr="flagged",
         )
 
     def _wait_for_shutdown(self):

@@ -241,11 +241,12 @@ class ConfigWatcher(threading.Thread):
                     "Detected change in %s, reloading configurations.", self.config_path
                 )
                 self._mtime = os.path.getmtime(self.config_path)
-                self.flagged = True
 
                 with self._config_lock:
                     self.config_reader = ConfigReader(self.config_path)
                     self._remove_completed_runs()
+
+                self.flagged = True
 
     def _remove_completed_runs(self):
         run_configs, _ = self.config_reader.gen_run_configs()
