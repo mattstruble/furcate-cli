@@ -258,15 +258,17 @@ class TestConfigWatcher(ThreadHelper):
         self._teardown()
 
     def test_remove_completed_runs_on_touch(self):
-        self._setup(refresh_rate=30)
+        self._setup()
         self._wait_for_init()
 
         run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
         assert len(run_configs) == 1
 
         self._gen_run_data()
+        self.config_watcher.reset_flagged()
         Path(self.config_reader.filename).touch()
         self._wait_for_thread_update()
+        self.wait_for_delay(10)
 
         run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
         assert len(run_configs) == 0
