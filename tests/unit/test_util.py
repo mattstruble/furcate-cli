@@ -91,7 +91,7 @@ class TestMemoryTrace(ThreadHelper):
 
         self._teardown()
 
-    @pytest.mark.parametrize("delay", (10, 20))
+    @pytest.mark.parametrize("delay", (5, 10))
     def test_init(self, delay):
         """
         Asserts that an enabled MemoryTrace properly initializes and waits for the delayed time before taking a snapshot.

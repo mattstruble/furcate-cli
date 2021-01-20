@@ -180,7 +180,7 @@ def config_watcher_basic_init(request):
 
 @pytest.mark.usefixtures("config_watcher_basic_init")
 class TestConfigWatcher(ThreadHelper):
-    def _setup(self, refresh_rate=5):
+    def _setup(self, refresh_rate=1):
         self.config_watcher = ConfigWatcher(self.config_reader, refresh_rate)
         self.config_watcher.start()
 
@@ -228,7 +228,7 @@ class TestConfigWatcher(ThreadHelper):
 
         self._teardown()
 
-    @pytest.mark.parametrize("refresh_rate", (10, 20))
+    @pytest.mark.parametrize("refresh_rate", (1, 5))
     def test_config_update(self, refresh_rate):
         self._setup(refresh_rate)
         self._wait_for_init()
