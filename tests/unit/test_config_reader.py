@@ -246,6 +246,55 @@ class TestConfigWatcher(ThreadHelper):
 
         self._teardown()
 
+    def test_remove_completed_runs(self):
+        self._setup()
+        self._wait_for_init()
+
+        self._gen_run_data()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+
+        assert len(run_configs) == 1
+
+        self.config_watcher._remove_completed_runs()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+
+        assert len(run_configs) == 0
+
+        self._teardown()
+
+    def test_remove_completed_runs_empty_dir(self):
+        self._setup()
+        self._wait_for_init()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+
+        assert len(run_configs) == 1
+
+        self.config_watcher._remove_completed_runs()
+
+        run_configs, _ = self.config_watcher.get_config_reader().gen_run_configs()
+
+        assert len(run_configs) == 1
+
+        self._teardown()
+
+    def test_remove_completed_runs_empty_run_configs(self):
+        self._setup()
+        self._wait_for_init()
+
+        self.config_watcher.config_reader._generated = True
+        _, _ = self.config_watcher.config_reader.gen_run_configs()
+        self.config_watcher.config_reader.run_configs = []
+        run_configs, _ = self.config_watcher.config_reader.gen_run_configs()
+
+        assert len(run_configs) == 0
+
+        self.config_watcher._remove_completed_runs()
+
+        self._teardown()
+
     def test_remove_completed_runs_on_init(self):
         self._gen_run_data()
         self._setup()

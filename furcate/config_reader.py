@@ -250,7 +250,7 @@ class ConfigWatcher(threading.Thread):
 
     def _remove_completed_runs(self):
         run_configs, _ = self.config_reader.gen_run_configs()
-        log_dir = run_configs[0]["log_dir"]
+        log_dir = self.config_reader.data["log_dir"]
 
         if os.path.exists(os.path.join(log_dir, "run_data.csv")):
             df = pd.read_csv(os.path.join(log_dir, "run_data.csv"))
