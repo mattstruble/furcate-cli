@@ -60,8 +60,8 @@ class TestMemoryTrace(ThreadHelper):
         self.mem_trace = MemoryTrace(enabled, delay)
         self.event = threading.Event()
 
-    def _wait_for_init(self):
-        self.wait_for_init(self.mem_trace, attr="_start_stats", wait_condition=None)
+    def _wait_for_init(self, timeout_seconds=5):
+        self.wait_for_init(self.mem_trace, timeout_seconds=timeout_seconds)
 
     def _wait_for_thread_update(self):
         self.wait_for_thread_update(
@@ -75,7 +75,8 @@ class TestMemoryTrace(ThreadHelper):
         """
         Assert that when disabled MemoryTrace doesn't run, nor allow snapshots to be performed.
         """
-        self._setup(False, 10)
+        self._setup(False, 1)
+        self._wait_for_init(2)
 
         # Assert nothing is initialized or changed when disabled
         assert self.mem_trace.enabled is False
@@ -131,7 +132,10 @@ class TestMemoryTrace(ThreadHelper):
             self._wait_for_thread_update()
             time_taken = time.time() - start_time
 
-            assert time_taken >= self.mem_trace.delay
+            assert (
+                time_taken >= self.mem_trace.delay
+                or abs(time_taken - self.mem_trace.delay) < 1
+            )
             assert prev_stats != self.mem_trace._prev_stats
             prev_stats = self.mem_trace._prev_stats
 

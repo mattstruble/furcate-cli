@@ -7,6 +7,7 @@
 
 import csv
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,9 @@ def default_values():
 
 
 def test_load_defaults(basic_config_reader, default_values):
+    """
+    Asserts that the config reader properly loads in default values for missing config fields.
+    """
     config, config_reader = basic_config_reader
     config_reader.data = config
     config_reader.meta_data = {}
@@ -55,6 +59,9 @@ def test_load_defaults(basic_config_reader, default_values):
 
 
 def test_load_config(basic_config_reader):
+    """
+    Asserts that the load_config method properly reads in the data from the file.
+    """
     config, config_reader = basic_config_reader
     fname = config_reader.filename
 
@@ -69,6 +76,9 @@ def test_load_config(basic_config_reader):
 
 @pytest.mark.parametrize("missing_key", ConfigReader._REQUIRED_KEYS)
 def test_invalid_data(basic_config_reader, missing_key):
+    """
+    Asserts that ConfigReader throws a value error if any of the required keys are missing.
+    """
     config, config_reader = basic_config_reader
 
     config.pop(missing_key, None)
@@ -96,6 +106,9 @@ def test_invalid_data(basic_config_reader, missing_key):
     ],
 )
 def test_gen_config_permutations(basic_config_reader, foo_value, bar_value):
+    """
+    Asserts that the config permutation generator generates all permutations of the supplied data based on its format.
+    """
     config, config_reader = basic_config_reader
 
     enumerated_data = [
@@ -139,6 +152,9 @@ def test_gen_config_permutations(basic_config_reader, foo_value, bar_value):
 
 
 def test_gen_run_configs(basic_config_reader):
+    """
+    Asserts that the generated permutations are broken up into independent run configurations.
+    """
     config, config_reader = basic_config_reader
 
     data = {"foo": [1, 2], "bar": ["test", "bazz"]}
@@ -185,7 +201,7 @@ class TestConfigWatcher(ThreadHelper):
         self.config_watcher.start()
 
     def _wait_for_init(self):
-        self.wait_for_init(self.config_watcher, timeout_seconds=2)
+        self.wait_for_init(self.config_watcher)
 
     def _wait_for_thread_update(self):
         self.wait_for_thread_update(
@@ -212,6 +228,9 @@ class TestConfigWatcher(ThreadHelper):
             os.remove(os.path.join(self.config_reader.data["log_dir"], "run_data.csv"))
 
     def test_get_config_reader(self):
+        """
+        Asserts get_config_reader returns the proper config_reader object.
+        """
         self._setup()
 
         assert self.config_reader == self.config_watcher.get_config_reader()
@@ -219,6 +238,9 @@ class TestConfigWatcher(ThreadHelper):
         self._teardown()
 
     def test_reset_flagged(self):
+        """
+        Asserts reset_flagged properly resets the flagged state of the thread.
+        """
         self._setup()
 
         assert self.config_watcher.flagged is False
@@ -230,23 +252,36 @@ class TestConfigWatcher(ThreadHelper):
 
     @pytest.mark.parametrize("refresh_rate", (5, 10))
     def test_config_update(self, refresh_rate):
+        """
+        Asserts that the ConfigWatcher thread detects file changes and updates in time with the configured delay.
+        :param refresh_rate:
+        :return:
+        """
         self._setup(refresh_rate)
         self._wait_for_init()
 
         prev_mtime = self.config_watcher._mtime
 
-        self.wait_for_delay(refresh_rate // 3)
-
-        Path(self.config_reader.filename).touch()
-
+        # Wait for one update cycle to pass to better time the touch response
         self._wait_for_thread_update()
 
+        Path(self.config_reader.filename).touch()
+        start_time = time.time()
+        self._wait_for_thread_update()
+        end_time = time.time()
+
+        # Assert the time taken for the thread to update is close to the refresh rate
+        assert abs((end_time - start_time) - refresh_rate) < 1
         assert prev_mtime != self.config_watcher._mtime
         assert self.config_watcher.flagged is True
 
         self._teardown()
 
     def test_remove_completed_runs(self):
+        """
+        Assert remove_completed_runs reads in the run_data.csv from the log_dir and removes duplicate runs from run_configs.
+        :return:
+        """
         self._setup()
         self._wait_for_init()
 
@@ -265,6 +300,9 @@ class TestConfigWatcher(ThreadHelper):
         self._teardown()
 
     def test_remove_completed_runs_empty_dir(self):
+        """
+        Asserts that if run_data.csv doesn't exist that no errors are thrown, nor is the run_configs changed.
+        """
         self._setup()
         self._wait_for_init()
 
@@ -281,6 +319,9 @@ class TestConfigWatcher(ThreadHelper):
         self._teardown()
 
     def test_remove_completed_runs_empty_run_configs(self):
+        """
+        Asserts that if the existing run_configs are empty that no errors are thrown, nor is the run_configs changed.
+        """
         self._setup()
         self._wait_for_init()
 
@@ -296,6 +337,9 @@ class TestConfigWatcher(ThreadHelper):
         self._teardown()
 
     def test_remove_completed_runs_on_init(self):
+        """
+        Asserts that on initializing ConfigWatcher will remove completed runs.
+        """
         self._gen_run_data()
         self._setup()
         self._wait_for_init()
@@ -308,6 +352,11 @@ class TestConfigWatcher(ThreadHelper):
 
     @pytest.mark.xfail
     def test_remove_completed_runs_on_touch(self):
+        """
+        Asserts that after detecting a file change and reloading the file previous runs will be excluded from the generated config.
+
+        * Currently marked xfail due to odd race conditions in CI environment.
+        """
         self._setup()
         self._wait_for_init()
 
@@ -326,6 +375,9 @@ class TestConfigWatcher(ThreadHelper):
         self._teardown()
 
     def _gen_run_data(self):
+        """
+        Creates a run_data.csv in the correct location for the ConfigWatcher to detect when removing completed runs.
+        """
         run_configs, _ = self.config_reader.gen_run_configs()
         log_dir = self.config_reader.data["log_dir"]
 

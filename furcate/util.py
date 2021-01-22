@@ -46,12 +46,12 @@ class MemoryTrace(threading.Thread):
 
     def run(self):
         if self.enabled:
-            self._running = True
 
             logger.debug("Starting MemoryTrace")
             tracemalloc.start(25)
             self._start_stats = tracemalloc.take_snapshot()
             self._prev_stats = self._start_stats
+            self._running = True
 
             while self._running:
                 self._event.wait(self.delay)

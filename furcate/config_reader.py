@@ -228,11 +228,12 @@ class ConfigWatcher(threading.Thread):
         self._remove_completed_runs()
 
         self._mtime = os.path.getmtime(self.config_path)
-        self._running = True
+        self._running = False
         self._config_lock = threading.Lock()
         self._event = threading.Event()
 
     def run(self):
+        self._running = True
         while self._running:
             self._event.wait(self.refresh_rate)
 

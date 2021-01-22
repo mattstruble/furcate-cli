@@ -78,7 +78,9 @@ def threading_event(request):
 
 @pytest.mark.usefixtures("threading_event")
 class ThreadHelper:
-    def wait_for_init(self, thread, attr=None, wait_condition=None, timeout_seconds=5):
+    def wait_for_init(
+        self, thread, attr="_running", wait_condition=False, timeout_seconds=5
+    ):
         """
         Waits for MemoryTrace to start and run by checking if the start_stats have been set.
         :param timeout_seconds: Timeout to wait for thread to start
