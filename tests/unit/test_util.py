@@ -75,7 +75,7 @@ class TestMemoryTrace(ThreadHelper):
         """
         Assert that when disabled MemoryTrace doesn't run, nor allow snapshots to be performed.
         """
-        self._setup(False, 100)
+        self._setup(False, 10)
 
         # Assert nothing is initialized or changed when disabled
         assert self.mem_trace.enabled is False
@@ -114,7 +114,7 @@ class TestMemoryTrace(ThreadHelper):
 
         self._teardown()
 
-    @pytest.mark.parametrize("delay", (3, 6, 9))
+    @pytest.mark.parametrize("delay", (3, 6))
     def test_multiple_snapshots(self, delay):
         """
         Asserts that MemoryTrace performs multiple snapshots with different delays.
@@ -141,7 +141,7 @@ class TestMemoryTrace(ThreadHelper):
         """
         Asserts that external threads can initiate a snapshot.
         """
-        self._setup(True, 100)
+        self._setup(True, 10)
 
         assert self.mem_trace._prev_stats == self.mem_trace._start_stats
 
