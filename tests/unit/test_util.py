@@ -101,9 +101,11 @@ class TestMemoryTrace(ThreadHelper):
         self._setup(True, delay)
 
         assert self.mem_trace.enabled is True
-        assert self.mem_trace._running is True
+        assert self.mem_trace._running is False
 
         self._wait_for_init()
+
+        assert self.mem_trace._running is True
 
         assert self.mem_trace._start_stats is not None
         assert self.mem_trace._prev_stats == self.mem_trace._start_stats
