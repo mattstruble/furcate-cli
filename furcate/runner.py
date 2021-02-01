@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 
@@ -56,7 +56,6 @@ def get_run_data_csv_path(config_reader, has_subdir=False):
 
 def config_to_csv(config_reader, has_subdir=True):
     fname = get_run_data_csv_path(config_reader, has_subdir)
-
     run_data = config_reader.meta_data.pop("data", {})
 
     # Package metadata up to the data layer for writing to csv
@@ -99,7 +98,8 @@ class TrainingThread(threading.Thread):
 
         self.dir_name = os.path.basename(self.config["data_dir"])
         self.name = self.config["data_name"] + str(id)
-        self.run_time = datetime.now() - datetime.now()
+        self.run_time = timedelta(0)
+        self._running = False
 
     def _gen_log_dir(self):
         folder = "{}_{}".format(self.name, self.dir_name)
@@ -126,6 +126,7 @@ class TrainingThread(threading.Thread):
         return command
 
     def run(self):
+        self._running = True
 
         fd, temppath = tempfile.mkstemp()
         start_time = datetime.now()
@@ -161,6 +162,7 @@ class TrainingThread(threading.Thread):
             os.remove(temppath)
 
         self.run_time = datetime.now() - start_time
+        self._running = False
 
 
 class Runner:

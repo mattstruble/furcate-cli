@@ -5,6 +5,9 @@
 # Author: Matt Struble
 # Date: Dec. 30 2020
 
+import copy
+import datetime
+import json
 import os
 import threading
 from copy import deepcopy
@@ -13,11 +16,14 @@ import pandas as pd
 import pytest
 
 from furcate.runner import (
+    TrainingThread,
     config_to_csv,
     get_num_completed_runs,
     get_run_data_csv_path,
     seconds_to_string,
 )
+
+from .conftest import ThreadHelper
 
 
 @pytest.mark.parametrize(
@@ -162,3 +168,204 @@ def test_concurrent_config_to_csv(log_basic_config_reader):
     for record in df.to_dict("records"):
         for key in config_reader.data:
             assert config_reader.data[key] == record[key]
+
+
+@pytest.mark.usefixtures("log_config_class_init")
+class TestTrainingThread(ThreadHelper):
+    def _setup(self, thread_id=0, script_name="foo", log_keys=[]):
+        self.training_thread = TrainingThread(
+            thread_id, self.config, script_name, log_keys
+        )
+        self.training_thread.config["gpu_id"] = None
+
+    def _wait_for_init(self):
+        self.wait_for_init(self.training_thread)
+
+    def _wait_for_shutdown(self):
+        self.wait_for_shutdown(self.training_thread)
+
+    def _teardown(self):
+        self._wait_for_shutdown()
+        assert self.training_thread.is_alive() is False
+
+    def test_init(self):
+        thread_id = 0
+        script_name = "foo"
+        log_keys = ["foo", "bar"]
+        self._setup(thread_id=thread_id, script_name=script_name, log_keys=log_keys)
+
+        assert self.training_thread.thread_id == thread_id
+        assert self.training_thread.config == self.config
+        assert self.training_thread.script_name == script_name
+        assert self.training_thread.log_keys == log_keys
+
+        assert self.training_thread.dir_name == os.path.basename(
+            self.config["data_dir"]
+        )
+        assert self.training_thread.name == self.config["data_name"] + str(thread_id)
+        assert self.training_thread.run_time == datetime.timedelta(0)
+        assert self.training_thread._running is False
+
+    def test_gen_log_dir_creates_dirs(self):
+        self._setup()
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        expected_path = os.path.join(
+            self.config["log_dir"], "{}_{}".format(thread_name, thread_dir_name)
+        )
+
+        assert not os.path.exists(expected_path)
+        self.training_thread._gen_log_dir()
+        assert os.path.exists(expected_path)
+
+    def test_gen_log_dir_no_keys(self):
+        self._setup()
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        expected_path = os.path.join(
+            self.config["log_dir"], "{}_{}".format(thread_name, thread_dir_name)
+        )
+
+        self.training_thread._gen_log_dir()
+        actual_path = self.training_thread.config["log_dir"]
+
+        assert expected_path == actual_path
+
+    def test_gen_log_dir_key_shortening(self):
+        log_keys = ["data_name"]
+        self._setup(log_keys=log_keys)
+
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        folder_name = "{}_{}_{}{}".format(
+            thread_name, thread_dir_name, "dn", self.config["data_name"]
+        )
+
+        expected_path = os.path.join(self.config["log_dir"], folder_name)
+        self.training_thread._gen_log_dir()
+        actual_path = self.training_thread.config["log_dir"]
+        assert expected_path == actual_path
+
+    def test_gen_log_dir_ignores_data_dir(self):
+        log_keys = ["data_dir"]
+        self._setup(log_keys=log_keys)
+
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        folder_name = "{}_{}".format(thread_name, thread_dir_name)
+
+        expected_path = os.path.join(self.config["log_dir"], folder_name)
+        self.training_thread._gen_log_dir()
+        actual_path = self.training_thread.config["log_dir"]
+        assert expected_path == actual_path
+
+    def test_gen_log_dir_all_keys(self):
+        log_keys = list(self.config.keys())
+        log_keys.remove("log_dir")
+
+        self._setup(log_keys=log_keys)
+
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        folder_name = "{}_{}".format(thread_name, thread_dir_name)
+
+        for key in log_keys:
+            if key != "data_dir":
+                short = "".join([s[0] for s in key.split("_")])
+                value = str(self.config[key]).replace(".", "-")
+                folder_name += "_{}{}".format(short, value)
+
+        expected_path = os.path.join(self.config["log_dir"], folder_name)
+        self.training_thread._gen_log_dir()
+        actual_path = self.training_thread.config["log_dir"]
+        assert expected_path == actual_path
+
+    @pytest.mark.parametrize("config_path", ("foo", "bar", 5))
+    def test_generate_run_command(self, config_path):
+        self._setup()
+        expected_command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
+            self.training_thread.script_name,
+            config_path,
+            self.training_thread.name,
+            self.training_thread.thread_id,
+        )
+
+        actual_command = self.training_thread._generate_run_command(config_path)
+        assert expected_command == actual_command
+
+    @pytest.mark.parametrize("gpu_id", (-1, 2, 30000000, "gpu", None))
+    def test_generate_run_command_with_gpu(self, gpu_id):
+        self._setup()
+        self.training_thread.config["gpu_id"] = gpu_id
+        config_path = "foo"
+
+        expected_command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
+            self.training_thread.script_name,
+            config_path,
+            self.training_thread.name,
+            self.training_thread.thread_id,
+        )
+
+        if gpu_id is not None:
+            expected_command += ' --gpu "{}"'.format(gpu_id)
+
+        actual_command = self.training_thread._generate_run_command(config_path)
+        assert expected_command == actual_command
+
+    def test_run(self):
+        self._setup()
+
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        log_dir = os.path.join(
+            self.config["log_dir"], thread_name + "_" + thread_dir_name
+        )
+
+        assert not os.path.exists(log_dir)
+
+        self.training_thread.start()
+        self._wait_for_init()
+        self._wait_for_shutdown()
+
+        assert os.path.exists(log_dir)
+
+        log_file = os.path.join(log_dir, self.training_thread.name + ".log")
+        err_file = os.path.join(log_dir, self.training_thread.name + ".err")
+
+        assert os.path.exists(log_file)
+        assert os.path.exists(err_file)
+        assert self.training_thread.run_time > datetime.timedelta(0)
+
+    def test_run_with_run_data(self):
+        def mock_command(config_path):
+            return "python --version"
+
+        self._setup()
+        self.training_thread._generate_run_command = mock_command
+
+        thread_name = self.training_thread.name
+        thread_dir_name = self.training_thread.dir_name
+
+        log_dir = os.path.join(
+            self.config["log_dir"], thread_name + "_" + thread_dir_name
+        )
+
+        os.makedirs(log_dir, exist_ok=True)
+
+        run_data = copy.deepcopy(self.config)
+        run_data["log_dir"] = log_dir
+        with open(os.path.join(log_dir, "run_data.json"), "w") as f:
+            json.dump(run_data, f)
+
+        self.training_thread.start()
+        self._wait_for_init()
+        self._wait_for_shutdown()
+
+        run_data_csv_path = get_run_data_csv_path(self.config_reader)
+        assert os.path.exists(run_data_csv_path)
