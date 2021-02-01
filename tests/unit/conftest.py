@@ -71,6 +71,14 @@ def finished_run_config_reader():
     shutil.rmtree("test")
 
 
+@pytest.fixture(params=["log_basic_config_reader"])
+def log_config_class_init(request):
+    config, config_reader = request.getfixturevalue(request.param)
+    request.cls.config_reader = config_reader
+    request.cls.config = config
+    yield
+
+
 @pytest.fixture(scope="class")
 def threading_event(request):
     request.cls.event = threading.Event()

@@ -186,15 +186,7 @@ def test_gen_run_configs(basic_config_reader):
         assert found is True
 
 
-@pytest.fixture(params=["log_basic_config_reader"])
-def config_watcher_basic_init(request):
-    config, config_reader = request.getfixturevalue(request.param)
-    request.cls.config_reader = config_reader
-    request.cls.config = config
-    yield
-
-
-@pytest.mark.usefixtures("config_watcher_basic_init")
+@pytest.mark.usefixtures("log_config_class_init")
 class TestConfigWatcher(ThreadHelper):
     def _setup(self, refresh_rate=1):
         self.config_watcher = ConfigWatcher(self.config_reader, refresh_rate)
