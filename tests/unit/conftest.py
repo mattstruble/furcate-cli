@@ -82,8 +82,11 @@ class ThreadHelper:
         self, thread, attr="_running", wait_condition=False, timeout_seconds=5
     ):
         """
-        Waits for MemoryTrace to start and run by checking if the start_stats have been set.
-        :param timeout_seconds: Timeout to wait for thread to start
+        Waits for the thread to initialize by waiting for the attr to not equal the wait condition.
+        :param thread: Thread to wait for update.
+        :param attr: Attribute to watch for change.
+        :param wait_condition: Condition to wait on so long as attribute equals.
+        :param timeout_seconds: Max seconds to wait before timeout.
         """
         total_time = 0
         prev_time = time.time()
@@ -96,7 +99,8 @@ class ThreadHelper:
 
     def wait_for_shutdown(self, thread, timeout_seconds=5):
         """
-        Waits for MemoryTrace is_alive() to return false.
+        Waits for Thread is_alive() to return false.
+        :param thread: Thread to wait for shutdown.
         :param timeout_seconds: Timeout to wait for thread to stop.
         """
         total_time = 0
@@ -107,8 +111,14 @@ class ThreadHelper:
             prev_time = time.time()
 
     def wait_for_thread_update(self, thread, expected_delay, attr=None):
+        """
+        Waits for the provided thread's attribute to change. Timesout after 2x expected_delay.
+        :param thread: Thread to wait on.
+        :param expected_delay: (int) Expected time in seconds for the thread to update.
+        :param attr: (string) Attribute to watch for change.
+        """
         timeout = expected_delay * 2
-        wait_time = expected_delay / 3
+        wait_time = 1
         total_time = 0
         prev_value = getattr(thread, attr)
         prev_time = time.time()
@@ -120,12 +130,13 @@ class ThreadHelper:
 
     def wait_for_delay(self, delay):
         """
-        Waits for MemoryTrace to change stats based upon the configured delay. Timesout after delay*2 seconds.
-        :param prev_stats: Previous stats to compare to current thread stats
+        Waits for the configured delay. Timesout after delay*2 seconds.
+        :param delay: Amount of time to delay the thread by
         """
         total_time = 0
         prev_time = time.time()
         while total_time < delay:
-            self.event.wait(delay / 3)
-            total_time += time.time() - prev_time
-            prev_time = time.time()
+            self.event.wait(delay - total_time)
+            new_time = time.time()
+            total_time += new_time - prev_time
+            prev_time = new_time
