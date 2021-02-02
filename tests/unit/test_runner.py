@@ -31,10 +31,18 @@ from .conftest import ThreadHelper
     [(34, "34s"), (124, "2m 4s"), (7224, "2h 0m 24s"), (178560, "2d 1h 36m 0s")],
 )
 def test_seconds_to_string(seconds, expected):
+    """
+    Assert that the passed in seconds is converted to the proper string representation.
+    :param seconds: Seconds (int)
+    :param expected: String in format of "Xh Xm Xs"
+    """
     assert expected == seconds_to_string(seconds)
 
 
 def test_get_run_data_csv_path(log_basic_config_reader):
+    """
+    Assert that the run_data.csv path generation works from the parent folder as well as subdirs.
+    """
     config, config_reader = log_basic_config_reader
 
     expected_path = os.path.join(config_reader.data["log_dir"], "run_data.csv")
@@ -52,6 +60,9 @@ def test_get_run_data_csv_path(log_basic_config_reader):
 
 
 def test_get_num_completed_runs(log_basic_config_reader):
+    """
+    Assert that the number of completed runs is properly read from the file.
+    """
     config, config_reader = log_basic_config_reader
 
     run_data_path = get_run_data_csv_path(config_reader)
@@ -69,6 +80,9 @@ def test_get_num_completed_runs(log_basic_config_reader):
 
 
 def test_config_to_csv(log_basic_config_reader):
+    """
+    Assert that the configurations are properly saved as csv files and can be re-read in as DataFrames.
+    """
     config, config_reader = log_basic_config_reader
     log_dir = os.path.dirname(config_reader.data["log_dir"])
 
@@ -96,6 +110,9 @@ def test_config_to_csv(log_basic_config_reader):
 
 
 def test_finished_run_config_to_csv(finished_run_config_reader):
+    """
+    Asserts that a finished run config is translated into run_{} records in the final csv.
+    """
     config, config_reader = finished_run_config_reader
     log_dir = os.path.dirname(config_reader.data["log_dir"])
 
@@ -121,6 +138,9 @@ def test_finished_run_config_to_csv(finished_run_config_reader):
 
 
 def test_multiple_config_to_csv(log_basic_config_reader):
+    """
+    Assert that multiple reads and writes are supported by config_to_csv.
+    """
     config, config_reader = log_basic_config_reader
     log_dir = os.path.dirname(config_reader.data["log_dir"])
 
@@ -140,6 +160,9 @@ def test_multiple_config_to_csv(log_basic_config_reader):
 
 
 def test_concurrent_config_to_csv(log_basic_config_reader):
+    """
+    Assert that concurrent read and writes are supported by config_to_csv.
+    """
     config, config_reader = log_basic_config_reader
     log_dir = os.path.dirname(config_reader.data["log_dir"])
 
@@ -189,6 +212,9 @@ class TestTrainingThread(ThreadHelper):
         assert self.training_thread.is_alive() is False
 
     def test_init(self):
+        """
+        Assert that the TrainingThread is initialized with the properly values.
+        """
         thread_id = 0
         script_name = "foo"
         log_keys = ["foo", "bar"]
@@ -207,6 +233,9 @@ class TestTrainingThread(ThreadHelper):
         assert self.training_thread._running is False
 
     def test_gen_log_dir_creates_dirs(self):
+        """
+        Assert that generating the log_dir path also creates the directory.
+        """
         self._setup()
         thread_name = self.training_thread.name
         thread_dir_name = self.training_thread.dir_name
@@ -220,6 +249,9 @@ class TestTrainingThread(ThreadHelper):
         assert os.path.exists(expected_path)
 
     def test_gen_log_dir_no_keys(self):
+        """
+        Assert that if not presented with any unique keys a log dir is still generated without error.
+        """
         self._setup()
         thread_name = self.training_thread.name
         thread_dir_name = self.training_thread.dir_name
@@ -234,6 +266,9 @@ class TestTrainingThread(ThreadHelper):
         assert expected_path == actual_path
 
     def test_gen_log_dir_key_shortening(self):
+        """
+        Assert that when presented with unique keys they are shortened properly with the correct data values formatted.
+        """
         log_keys = ["data_name"]
         self._setup(log_keys=log_keys)
 
@@ -250,6 +285,9 @@ class TestTrainingThread(ThreadHelper):
         assert expected_path == actual_path
 
     def test_gen_log_dir_ignores_data_dir(self):
+        """
+        Asserts that if data_dir is present as a key it isn't included in the key shortening logic.
+        """
         log_keys = ["data_dir"]
         self._setup(log_keys=log_keys)
 
@@ -264,6 +302,9 @@ class TestTrainingThread(ThreadHelper):
         assert expected_path == actual_path
 
     def test_gen_log_dir_all_keys(self):
+        """
+        Assert that all configuration keys can be converted and create a proper folder structure.
+        """
         log_keys = list(self.config.keys())
         log_keys.remove("log_dir")
 
@@ -287,6 +328,10 @@ class TestTrainingThread(ThreadHelper):
 
     @pytest.mark.parametrize("config_path", ("foo", "bar", 5))
     def test_generate_run_command(self, config_path):
+        """
+        Asserts that the run command can be created using a varity of different configuration paths.
+        :param config_path: Path to be inserted into the run command.
+        """
         self._setup()
         expected_command = 'python3 {} --config "{}" --name "{}" --id "{}"'.format(
             self.training_thread.script_name,
@@ -300,6 +345,10 @@ class TestTrainingThread(ThreadHelper):
 
     @pytest.mark.parametrize("gpu_id", (-1, 2, 30000000, "gpu", None))
     def test_generate_run_command_with_gpu(self, gpu_id):
+        """
+        Asserts that the gpu_id can be inserted and removed properly from the run command without error.
+        :param gpu_id: ID to be inserted into the run command.
+        """
         self._setup()
         self.training_thread.config["gpu_id"] = gpu_id
         config_path = "foo"
@@ -318,6 +367,10 @@ class TestTrainingThread(ThreadHelper):
         assert expected_command == actual_command
 
     def test_run(self):
+        """
+        Assert that run creates the log_dir, populates it with .log and .err files, and updates run_time.
+        :return:
+        """
         self._setup()
 
         thread_name = self.training_thread.name
@@ -343,6 +396,10 @@ class TestTrainingThread(ThreadHelper):
         assert self.training_thread.run_time > datetime.timedelta(0)
 
     def test_run_with_run_data(self):
+        """
+        Asserts that when a run_data.json is created by a successful run that it is then stored as a CSV in the root dir.
+        """
+
         def mock_command(config_path):
             return "python --version"
 
