@@ -313,18 +313,24 @@ class TestTrainingThread(ThreadHelper):
         thread_name = self.training_thread.name
         thread_dir_name = self.training_thread.dir_name
 
-        folder_name = "{}_{}".format(thread_name, thread_dir_name)
-
+        folder_start = "{}_{}".format(thread_name, thread_dir_name)
+        folder_name = folder_start
+        key_strings = []
         for key in log_keys:
             if key != "data_dir":
                 short = "".join([s[0] for s in key.split("_")])
                 value = str(self.config[key]).replace(".", "-")
-                folder_name += "_{}{}".format(short, value)
+                key_string = "_{}{}".format(short, value)
+                folder_name += key_string
+                key_strings.append(key_string)
 
         expected_path = os.path.join(self.config["log_dir"], folder_name)
         self.training_thread._gen_log_dir()
         actual_path = self.training_thread.config["log_dir"]
-        assert expected_path == actual_path
+        assert len(expected_path) == len(actual_path)
+        assert os.path.basename(actual_path).startswith(folder_start)
+        for key_string in key_strings:
+            assert key_string in actual_path
 
     @pytest.mark.parametrize("config_path", ("foo", "bar", 5))
     def test_generate_run_command(self, config_path):
