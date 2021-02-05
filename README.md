@@ -185,9 +185,9 @@ furcate-tf overrides the following Fork methods with common TensorFlow implement
 * **model_save**
     * `model.save(os.path.join(self.log_dir, "model.h5"))`
 * **save_metric**
-    * Gets train and validation values from `history.history` and plots them individually against epochs. 
-* **plot_metric**
     * Gets train and validation values from `history.history` and stores the final epoch values in the dictionary. 
+* **plot_metric**
+    * Gets train and validation values from `history.history` and plots them individually against epochs. 
     
 furcate-tf also comes with additional helper methods:
 
