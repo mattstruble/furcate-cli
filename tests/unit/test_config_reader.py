@@ -6,6 +6,7 @@
 # Date: Dec. 30 2020
 
 import csv
+import json
 import os
 import time
 from pathlib import Path
@@ -19,19 +20,25 @@ from .conftest import ThreadHelper
 
 @pytest.fixture()
 def default_values():
-    data = {
-        "log_dir": "logs",
-        "learning_rate": 0.001,
-        "verbose": 2,
-        "cache": False,
-        "seed": 42,
-        "prefetch": 1,
+    default_fname = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)),
+        "../../furcate",
+        "config",
+        "default.config",
+    )
+
+    with open(default_fname, "r") as f:
+        data = json.load(f)
+
+    train_prefixes = {
         "train_prefix": "test.train",
         "test_prefix": "test.test",
         "valid_prefix": "test.valid",
     }
 
-    meta_data = {"allow_cpu": False, "exclude_configs": [], "mem_trace": False}
+    data = {**data, **train_prefixes}
+
+    meta_data = data.pop("meta")
 
     return data, meta_data
 
@@ -41,8 +48,6 @@ def test_load_defaults(basic_config_reader, default_values):
     Asserts that the config reader properly loads in default values for missing config fields.
     """
     config, config_reader = basic_config_reader
-    config_reader.data = config
-    config_reader.meta_data = {}
 
     config_reader._load_defaults()
 
@@ -70,8 +75,6 @@ def test_load_config(basic_config_reader):
     for key in config:
         assert key in data
         assert config[key] == data[key]
-
-    assert len(meta_data) == 0
 
 
 @pytest.mark.parametrize("missing_key", ConfigReader._REQUIRED_KEYS)

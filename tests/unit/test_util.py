@@ -50,6 +50,28 @@ def test_get_gpu_stats_no_dups():
     assert len(gpus) == len(ids)
 
 
+def test_init_memory_trace_from_config_reader(basic_config_reader):
+    _, config_reader = basic_config_reader
+    mem_trace_config = config_reader.meta_data["mem_trace"]
+    mem_trace = MemoryTrace(**mem_trace_config)
+
+    assert mem_trace_config["enabled"] == mem_trace.enabled
+    assert mem_trace_config["delay"] == mem_trace.delay
+    assert mem_trace_config["top"] == mem_trace.top
+    assert mem_trace_config["trace"] == mem_trace.trace
+
+
+def test_init_memory_trace_from_dict():
+    mem_trace_config = {"enabled": True, "delay": 20, "top": 5, "trace": 10}
+
+    mem_trace = MemoryTrace(**mem_trace_config)
+
+    assert mem_trace_config["enabled"] == mem_trace.enabled
+    assert mem_trace_config["delay"] == mem_trace.delay
+    assert mem_trace_config["top"] == mem_trace.top
+    assert mem_trace_config["trace"] == mem_trace.trace
+
+
 class TestMemoryTrace(ThreadHelper):
     def _setup(self, enabled, delay):
         """

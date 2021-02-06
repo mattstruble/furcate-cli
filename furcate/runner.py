@@ -174,7 +174,7 @@ class Runner:
         self.run_configs, self.log_keys = self.config.gen_run_configs()
 
     def run(self, script_name, gpu_indices):
-        mem_trace = MemoryTrace(self.meta["mem_trace"])
+        mem_trace = MemoryTrace(**self.meta["mem_trace"])
 
         if len(gpu_indices) < 1 and self.meta["allow_cpu"] is False:
             raise ValueError(
