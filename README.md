@@ -228,6 +228,13 @@ Below showcases the configuration with the required configuration keys, and any 
     "allow_cpu":       # Bool.   Defaults to: False
     "max_threads":     # Int.    Defaults to: Number of CUDA GPUs
     "exclude_configs": # Array.  Defaults to: []
+	
+	"mem_trace": { 	   # Dictionary. Defaults to below configuration. 
+		"enabled": 	   # Boolean. Defaults to false. 
+		"delay": 	   # Int. Number of seconds between running memory trace. Defaults to: 300 
+		"top":		   # Int. Number of top memory allocations to list. Defaults to: 10 
+		"trace": 	   # Int. Number of of allocations to display the stack trace for. Defaults to: 1 
+	}
   }
 }
 ```
@@ -260,6 +267,45 @@ the generated configs. In the below example the final generated configs won't ha
 
 Every value in an `exclude_config` dictionary needs to be matched in order for a generated config to be excluded. 
 Therefore, a dictionary pairing will need to be created per unique combination to exclude.  
+
+#### meta.mem_trace:
+
+`mem_trace` controls the built-in memory trace configuration, which periodically outputs memory usage statistics to the furcate.log file. It tracks the CUDA GPU stats, top memory changes since starting Furcate, top incremental changes, and the current top memory allocations. Below shows an example output of the top 3 memory allocations from a single snapshot while running a training environment:
+
+```
+2020-12-02 16:04:33.000907: furcate.runner] GPU Stats
+2020-12-02 16:04:33.000907: furcate.runner] gpu_stats id=0, name=TITAN RTX, mem_used=19278 MiB, mem_total=24220 MiB, mem_util=79 %, volatile_gpu=46 %, temp=60 C
+2020-12-02 16:04:33.000908: furcate.runner] gpu_stats id=1, name=TITAN RTX, mem_used=16564 MiB, mem_total=24220 MiB, mem_util=68 %, volatile_gpu=33 %, temp=54 C
+2020-12-02 16:04:33.000908: furcate.runner] Top Diffs since Start
+2020-12-02 16:04:33.000909: furcate.runner] top_diffs i=1, stat=XXX/python3.8/linecache.py:0: size=316 KiB (+316 KiB), count=3173 (+3173), average=102 B
+2020-12-02 16:04:33.000910: furcate.runner] top_diffs i=2, stat=XXX/python3.8/tracemalloc.py:0: size=73.6 KiB (+73.6 KiB), count=1084 (+1084), average=70 B
+2020-12-02 16:04:33.000910: furcate.runner] top_diffs i=3, stat=XXX/python3.8/abc.py:0: size=25.2 KiB (+25.2 KiB), count=144 (+144), average=179 B
+2020-12-02 16:04:33.000910: furcate.runner] Top Incremental
+2020-12-02 16:04:33.000910: furcate.runner] top_incremental i=1, stat=XXX/python3.8/linecache.py:137: size=315 KiB (+101 KiB), count=3156 (+1018), average=102 B
+2020-12-02 16:04:33.000910: furcate.runner] top_incremental i=2, stat=XXX/python3.8/tracemalloc.py:185: size=25.5 KiB (+16.6 KiB), count=435 (+280), average=60 B
+2020-12-02 16:04:33.000911: furcate.runner] top_incremental i=3, stat=XXX/python3.8/tracemalloc.py:532: size=12.9 KiB (+12.9 KiB), count=195 (+195), average=68 B
+2020-12-02 16:04:33.000911: furcate.runner] Top Current
+2020-12-02 16:04:33.000924: furcate.runner] top_current i=1, stat=XXX/python3.8/linecache.py:0: size=316 KiB, count=3173, average=102 B
+2020-12-02 16:04:33.000924: furcate.runner] top_current i=2, stat=XXX/python3.8/tracemalloc.py:0: size=73.6 KiB, count=1084, average=70 B
+2020-12-02 16:04:33.000924: furcate.runner] top_current i=3, stat=XXX/python3.8/abc.py:0: size=25.2 KiB, count=144, average=179 B
+2020-12-02 16:04:33.000936: furcate.runner] traceback memory_blocks=2138, size_kB=213
+2020-12-02 16:04:33.000936: furcate.runner]   File "dlpa_model_research/dlpa_model.py", line 191
+2020-12-02 16:04:33.000936: furcate.runner]     app.run()
+2020-12-02 16:04:33.000936: furcate.runner]   File "XXX/python3.8/site-packages/furcate-0.1.0.dev1-py3.8.egg/furcate/fork.py", line 87
+2020-12-02 16:04:33.000936: furcate.runner]     runner.run(self.script_name)
+2020-12-02 16:04:33.000936: furcate.runner]   File "XXX/python3.8/site-packages/furcate-0.1.0.dev1-py3.8.egg/furcate/runner.py", line 358
+2020-12-02 16:04:33.000936: furcate.runner]     mem_trace.snapshot("Started thread {}: [{}]".format(thread_id, str(config)))
+2020-12-02 16:04:33.000936: furcate.runner]   File "XXX/python3.8/site-packages/furcate-0.1.0.dev1-py3.8.egg/furcate/runner.py", line 134
+2020-12-02 16:04:33.000936: furcate.runner]     for line in stat.traceback.format():
+2020-12-02 16:04:33.000936: furcate.runner]   File "XXX/python3.8/tracemalloc.py", line 229
+2020-12-02 16:04:33.000936: furcate.runner]     line = linecache.getline(frame.filename, frame.lineno).strip()
+2020-12-02 16:04:33.000936: furcate.runner]   File "XXX/python3.8/linecache.py", line 16
+2020-12-02 16:04:33.000936: furcate.runner]     lines = getlines(filename, module_globals)
+2020-12-02 16:04:33.000937: furcate.runner]   File "XXX/python3.8/linecache.py", line 47
+2020-12-02 16:04:33.000937: furcate.runner]     return updatecache(filename, module_globals)
+2020-12-02 16:04:33.000937: furcate.runner]   File "XXX/python3.8/linecache.py", line 137
+2020-12-02 16:04:33.000937: furcate.runner]     lines = fp.readlines()
+```
 
 ## Roadmap 
 
