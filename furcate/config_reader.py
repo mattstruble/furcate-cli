@@ -75,18 +75,6 @@ class ConfigReader:
         Loads furcate default data and meta data values, if they don't already exist in the loaded data.
         :return: None.
         """
-        self.data.setdefault("log_dir", "logs")
-
-        self.data.setdefault("learning_rate", 0.001)
-        self.data.setdefault("verbose", 2)
-        self.data.setdefault("cache", False)
-        self.data.setdefault("seed", 42)
-        self.data.setdefault("prefetch", 1)
-
-        self.meta_data.setdefault("allow_cpu", False)
-        self.meta_data.setdefault("exclude_configs", [])
-        self.meta_data.setdefault("mem_trace", False)
-
         self.data.setdefault("train_prefix", self.data["data_name"] + ".train")
         self.data.setdefault("test_prefix", self.data["data_name"] + ".test")
         self.data.setdefault("valid_prefix", self.data["data_name"] + ".valid")
@@ -111,7 +99,14 @@ class ConfigReader:
 
         self._validate_data(data, fname)
 
-        data.setdefault("meta", {})
+        default_fname = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), "config", "default.config"
+        )
+
+        with open(default_fname, "r") as f:
+            default_config = json.load(f)
+
+        data = {**default_config, **data}
 
         return data, data["meta"]
 

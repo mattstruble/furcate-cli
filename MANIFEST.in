@@ -1,1 +1,2 @@
 include furcate/config/logging.config
+include furcate/config/default.config
