@@ -221,8 +221,8 @@ Below showcases the configuration with the required configuration keys, and any 
   "learning_rate":  # Float.  Defaults to: 0.001
   "verbose":        # Int.    Defaults to: 2
   "cache":          # Bool.   Defaults to: False
-  "seed"            # Int.    Defaults to: 42
-  "prefetch"        # Int.    Defaults to: 1 
+  "seed":           # Int.    Defaults to: 42
+  "prefetch":       # Int.    Defaults to: 1 
 
   "meta": {
     "allow_cpu":       # Bool.   Defaults to: False
