@@ -10,8 +10,8 @@ Welcome to furcate's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-intro
-furcate
+   intro
+   furcate
 
 Indices and tables
 ==================
