@@ -23,6 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 def seconds_to_string(seconds):
+    """
+    Convert run seconds into string representation
+    :param seconds: Number of seconds
+    :type seconds: int
+    :return: String in the format of 'Xd Xh Xm Xs' based on the provided elapsed time
+    :rtype: string
+    """
     day = int(seconds // (24 * 3600))
     time_mod = seconds % (24 * 3600)
     hour = int(time_mod // 3600)
@@ -46,6 +53,16 @@ csv_lock = threading.Lock()
 
 
 def get_run_data_csv_path(config_reader, has_subdir=False):
+    """
+    Locates the run_data.csv location based upon the config reader data. If the config is the subdir of the running
+    dir then it will locate the main dir.
+    :param config_reader: Configuration holding the log_dir location
+    :type config_reader: furcate.ConfigReader
+    :param has_subdir: Whether the reader was instantiated in a subdir
+    :type has_subdir: bool
+    :return: File path for run_data.csv
+    :rtype: path
+    """
     log_dir = config_reader.data["log_dir"]
     if has_subdir:
         log_dir = os.path.dirname(log_dir)
@@ -55,6 +72,14 @@ def get_run_data_csv_path(config_reader, has_subdir=False):
 
 
 def config_to_csv(config_reader, has_subdir=True):
+    """
+    Saves the ConfigReader as a row in the run_data.csv
+    :param config_reader: ConfigReader to save
+    :type config_reader: furcate.ConfigReader
+    :param has_subdir: Whether the config reader exists as a subdir, usually true for individual run data.
+    :type has_subdir: bool
+    :return: None
+    """
     fname = get_run_data_csv_path(config_reader, has_subdir)
     run_data = config_reader.meta_data.pop("data", {})
 
@@ -75,6 +100,14 @@ def config_to_csv(config_reader, has_subdir=True):
 
 
 def get_num_completed_runs(config_reader):
+    """
+    Parses the log_dir from config_reader and uses that to read in the run_data.csv and calculate the total number of
+    completed runs.
+    :param config_reader: ConfigReader holding path information.
+    :type config_reader: furcate.ConfigReader
+    :return: Number of completed runs
+    :rtype: int
+    """
     path = get_run_data_csv_path(config_reader)
 
     if os.path.exists(path):

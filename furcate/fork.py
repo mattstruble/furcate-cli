@@ -116,6 +116,7 @@ class Fork:
         Checks if current thread is the runner thread. If there are multiple generated run_configs in ConfigReader
         then thread is classified as runner in order to carry responsibility of ingesting the multiple configs.
         :return: True if runner.
+        :rtype: bool
         """
         run_configs, _ = self.config.gen_run_configs()
         return len(run_configs) > 1
@@ -195,6 +196,7 @@ class Fork:
         """
         Gets a list of available GPUs indices to train on. Defaults to using nvidia-smi.
         :return: List of available GPUs.
+        :rtype: list
         """
         gpus = get_gpu_stats()
         indices = [gpu.id for gpu in gpus]
@@ -211,6 +213,7 @@ class Fork:
         """
         Used for displaying the model architecture summary to the user. Called when verbose > 1.
         :param model: Model to be displayed.
+        :type model: object
         :return: None
         """
         raise NotImplementedError()
@@ -219,30 +222,35 @@ class Fork:
         """
         Builds the model for use during the training sequence.
         :return: Deep learning model to be compiled and fit.
+        :rtype: object
         """
         raise NotImplementedError()
 
     def get_callbacks(self):
         """
-        Returns a list of callbacks to pass to the model during the fit stage. Defaults to None.
+        :return: a list of callbacks to pass to the model during the fit stage. Defaults to None.
+        :rtype: list, or None
         """
         return None
 
     def get_metrics(self) -> list:
         """
-        Returns a list of metrics to pass to the model during the compile stage.
+        :return: a list of metrics to pass to the model during the compile stage.
+        :rtype: list
         """
         raise NotImplementedError()
 
     def get_optimizer(self) -> object:
         """
-        Returns the model optimizer for use in the compile stage.
+        :return: the model optimizer for use in the compile stage.
+        :rtype: object
         """
         raise NotImplementedError()
 
     def get_loss(self) -> object:
         """
-        Returns the loss function for use in the compile stage.
+        :return: the loss function for use in the compile stage.
+        :rtype: object
         """
         raise NotImplementedError()
 
@@ -250,10 +258,15 @@ class Fork:
         """
         Compiles the model for training
         :param model: Model to be compiled
+        :type model: object
         :param optimizer: Training optimizer
+        :type optimizer: function
         :param loss: Loss function to train against
+        :type loss: function
         :param metrics: Metrics to record
+        :type metrics: list
         :return: Compiled model
+        :rtype: object
         """
         raise NotImplementedError()
 
@@ -263,12 +276,19 @@ class Fork:
         """
         Trains the compiled model and returns the history of training.
         :param model: Model to train
+        :type model: object
         :param train_set: Training dataset to fit against
+        :type train_set: generator or list
         :param epochs: Number of epochs to train
+        :type epochs: int
         :param valid_set: Validation dataset
+        :type valid_set: generator or list
         :param callbacks: A list of training callbacks
+        :type callbacks: list
         :param verbose: Verbosity of training
+        :type verbose: int
         :return: History object representing the model training
+        :rtype: dict
         """
         raise NotImplementedError()
 
@@ -276,7 +296,9 @@ class Fork:
         """
         Evaluates the model against the provided test set.
         :param model: Model to evaluate
+        :type model: object
         :param test_set: Dataset to test the model against
+        :type test_set: generator or list
         :return: Evaluation results
         """
         raise NotImplementedError()
@@ -285,6 +307,7 @@ class Fork:
         """
         Save the model to disk.
         :param model: Trained model to save
+        :type model: object
         :return: None
         """
         raise NotImplementedError()
@@ -292,8 +315,10 @@ class Fork:
     def preprocess(self, record):
         """
         Preprocesses the data record into appropriate format for the model
-        :param record: Record information to preprocess
-        :return: Preprocessed dataset for model ingestion
+        :param record: A single record information to preprocess during dataset mapping for feeding into the model.
+        :type record: object
+        :return: A preprocessed record to be fed into the model.
+        :rtype: object
         """
         raise NotImplementedError()
 
@@ -319,6 +344,7 @@ class Fork:
         """
         Gets the filepaths to the data that will then be processed by get_dataset.
         :return: train_filepaths, test_filepaths, valid_filepaths
+        :rtype: (list, list, list)
         """
         train_filepaths = [
             os.path.join(self.data_dir, x)
@@ -342,9 +368,12 @@ class Fork:
         """
         Gets the datasets to be passed into the model for training and evaluation.
         :param train_fp: List of filepaths of training data.
+        :type train_fp: list
         :param test_fp: List of filepaths of test data.
+        :type test_fp: list
         :param valid_fp: List of filepaths of validation data.
-        :return: train_set, test_set, valid_set.
+        :type valid_fp: list
+        :return: A generator for each train_set, test_set, valid_set to pass into the model for training.
         """
         raise NotImplementedError()
 
@@ -354,9 +383,14 @@ class Fork:
         log directory.
 
         :param metric: String representation of the metric being plotted.
+        :type metric: string
         :param epochs: An array of each epoch the model performed [1..N]
+        :type epochs: list
         :param train_metrics: Training values at each epoch step.
+        :type train_metrics: list
         :param val_metrics: Validation values at each epoch step.
+        :type val_metrics: list
+        :return: None
         """
         plt.plot(epochs, train_metrics)
         plt.plot(epochs, val_metrics)
@@ -373,8 +407,9 @@ class Fork:
     def plot_metric(self, history, metric):
         """
         Takes the history object and the provided metric and graphs them using plot.
-        :param history: History of model training.
-        :param metric: Metric to plot.
+        :param history (dict): History of model training.
+        :param metric (string): Metric to plot.
+        :return: None
         """
         raise NotImplementedError()
 
@@ -382,8 +417,12 @@ class Fork:
         """
         Takes the history object and the provided metric and stores the latest value into the provided dictionary.
         :param run_results: Dictionary to store the last metric value in.
+        :type run_results: dict
         :param history: History of model training.
+        :type history: dict
         :param metric: Metric to plot.
+        :type metric: string
+        :return: None
         """
         raise NotImplementedError()
 
@@ -391,7 +430,9 @@ class Fork:
         """
         Saves the model history object to the designated output file.
         :param history: Training history generated during model_fit.
+        :type history: dict
         :param out_file: File object to save history to.
+        :type out_File: file object
         :return: None
         """
         raise NotImplementedError()

@@ -46,7 +46,8 @@ class ConfigReader:
     def __init__(self, filename):
         """
         Loads the provided file name and stores the preliminary data in self.data and self.meta_data.
-        :param filename: Name of configuration file to load (string).
+        :param filename: Name of configuration file to load.
+        :type filename: string
         """
         self.filename = filename
         self.data, self.meta_data = self._load_config(filename)
@@ -61,6 +62,7 @@ class ConfigReader:
         Breaks down the configuration into all the possible permutations, removes excluded_configs, and shuffles the
         remaining permutations.
         :return: All configuration permutations (list), Data keys that had multiple permutations (Set)
+        :rtype: list, set
         """
         if not self._generated:
             self.run_configs = self._gen_run_configs(self.data)
@@ -91,8 +93,10 @@ class ConfigReader:
     def _load_config(self, fname):
         """
         Loads the passed in json file name into a dictionary and validates that the required keys exist.
-        :param fname: File name to load (string)
+        :param fname: File name to load.
+        :type fname: string
         :return: data (dict), meta_data (dict)
+        :rtype: dict, dict
         """
         with open(fname) as f:
             data = json.load(f)
@@ -113,10 +117,14 @@ class ConfigReader:
     def _gen_config_permutations(self, index, config, enumerated_data):
         """
         Recursively iterates over the enumerated data dictionary and generates every permutation of data possible.
-        :param index: Current index (int)
-        :param config: Current copy of the built configuration (dict)
-        :param enumerated_data: Dictionary ov values with enumerated indexes (dict)
-        :return:
+        :param index: Current index.
+        :type index: int
+        :param config: Current copy of the built configuration.
+        :type config: dict
+        :param enumerated_data: Dictionary of values with enumerated indexes.
+        :type enumerated_data: dict
+        :return: A list of dictionary permutations.
+        :rtype: list
         """
         if index >= len(enumerated_data):
             return [config]
@@ -143,6 +151,7 @@ class ConfigReader:
         """
         Generates every permutation of the passed in data and stores the results in self.run_configs.
         :param data: Dictionary containing configurations where arrays are treated as permutable hyperparameters.
+        :type data: dict
         :return: None.
         """
         enumerated_data = {}
@@ -156,6 +165,7 @@ class ConfigReader:
         """
         Removes any configurations matching the completed run_dict from the run_configs list. Ignores meta data.
         :param run_dict: Dictionary containing run configurations.
+        :type run_dict: dict
         :return: None
         """
         self.gen_run_configs()

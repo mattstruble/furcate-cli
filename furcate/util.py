@@ -22,9 +22,12 @@ class MemoryTrace(threading.Thread):
         """
         Log memory usage on a delay.
 
-        :param delay: in seconds (int)
-        :param top: number of top allocations to list (int)
-        :param trace: number of top allocations to trace (int)
+        :param delay: in seconds
+        :type delay: int
+        :param top: number of top allocations to list
+        :type top: int
+        :param trace: number of top allocations to trace
+        :type trace: int
         :return: None
         """
         super().__init__()
@@ -215,6 +218,7 @@ def get_gpu_stats():
         GPU temperature in Celsius.
 
     :return: List of GPU objects.
+    :rtype: list
     """
     if platform.system() == "Windows":
         nvidia_smi = spawn.find_executable("nvidia-smi")
