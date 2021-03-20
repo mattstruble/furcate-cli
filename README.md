@@ -13,6 +13,7 @@ A lightweight wrapper for automatically forking deep learning sessions to enable
 * Python 3.x
 * Matplotlib
 * Pandas
+* Numpy
 
 [furcate-tf](#furcate-tf) additionally requires `tensorflow>=2.0`
 
