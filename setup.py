@@ -16,7 +16,7 @@ with open("VERSION") as f:
 description_template = "A lightweight wrapper for automatically forking {} sessions to enable parallel model training across multiple GPUs."
 install_requires = ["pandas", "matplotlib"]
 if "tf" in sys.argv:
-    name = "furcate-tf"
+    name = "furcate_tf"
     description = description_template.format("TensorFlow")
     install_requires.append("tensorflow >= 2.0")
     excludes = ("tests", "docs", "examples")
@@ -24,7 +24,7 @@ if "tf" in sys.argv:
 else:
     name = "furcate"
     description = description_template.format("deep learning")
-    excludes = ("tests", "docs", "examples", "*.furcate-tf")
+    excludes = ("tests", "docs", "examples", "*.furcate_tf")
 
 
 class build_py(build_py_orig):

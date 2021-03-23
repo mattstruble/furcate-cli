@@ -1,25 +1,6 @@
 furcate package
 ===============
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   furcate.furcate-tf
-
-Submodules
-----------
-
-furcate.config\_reader module
------------------------------
-
-.. automodule:: furcate.config_reader
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 furcate.fork module
 -------------------
 
@@ -28,26 +9,10 @@ furcate.fork module
    :undoc-members:
    :show-inheritance:
 
-furcate.runner module
----------------------
+Subpackages
+-----------
 
-.. automodule:: furcate.runner
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 4
 
-furcate.util module
--------------------
-
-.. automodule:: furcate.util
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: furcate
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   furcate.furcate_tf

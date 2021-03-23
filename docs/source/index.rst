@@ -11,7 +11,7 @@ Welcome to furcate's documentation!
    :caption: Contents:
 
    intro
-   furcate
+   modules
 
 Indices and tables
 ==================
