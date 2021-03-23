@@ -129,4 +129,7 @@ dmypy.json
 .pyre/
 
 .idea/
-*.iws
+*.
+
+# Allow docs build
+!docs/build
