@@ -12,6 +12,7 @@ import random
 import sys
 from argparse import ArgumentParser
 from datetime import datetime
+from types import FunctionType
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -123,6 +124,32 @@ class Fork:
         return len(run_configs) > 1
 
     def run(self):
+        """
+        Starts the model training processes. In situations with multiple configs a new Fork instance will be spawned with
+        a specific configuration loadout and data. Further logic is then controlled via the public interface methods.
+
+        The public interface methods will be called in the following order:
+            1. `set_visible_gpus`
+            2. `get_filepaths`
+            3. `get_datasets`
+            4. `get_model`
+            5. `model_summary` (if configured verbose >= 1)
+            6. `get_metrics`
+            7. `get_optimizer`
+            8. `get_loss`
+            9. `model_compile`
+            10. `get_callbacks`
+            11. `model_fit`
+            12. `model_save`
+            13. `model_evaluate` (if test dataset present)
+            14. `save_metric`
+            15. `plot_metric`
+            16. `save_history`
+
+        Afterwards a final configuration file with all the run information will be saved in the generated folder.
+
+        :return: None
+        """
         self._load_defaults()
         self._load_logging_config()
 
@@ -245,14 +272,14 @@ class Fork:
         """
         raise NotImplementedError()
 
-    def get_optimizer(self) -> object:
+    def get_optimizer(self) -> FunctionType:
         """
         :return: the model optimizer for use in the compile stage.
         :rtype: object
         """
         raise NotImplementedError()
 
-    def get_loss(self) -> object:
+    def get_loss(self) -> FunctionType:
         """
         :return: the loss function for use in the compile stage.
         :rtype: object
@@ -271,8 +298,7 @@ class Fork:
         :type loss: function
         :param metrics: Metrics to record
         :type metrics: list
-        :return: Compiled model
-        :rtype: object
+        :return: None
         """
         raise NotImplementedError()
 
