@@ -115,6 +115,7 @@ class Fork:
         """
         Checks if current thread is the runner thread. If there are multiple generated run_configs in ConfigReader
         then thread is classified as runner in order to carry responsibility of ingesting the multiple configs.
+
         :return: True if runner.
         :rtype: bool
         """
@@ -195,6 +196,7 @@ class Fork:
     def get_available_gpu_indices(self):
         """
         Gets a list of available GPUs indices to train on. Defaults to using nvidia-smi.
+
         :return: List of available GPUs.
         :rtype: list
         """
@@ -205,6 +207,7 @@ class Fork:
     def set_visible_gpus(self):
         """
         Uses self.gpu_id in order to restrict the training sessions visible GPUs.
+
         :return: None
         """
         os.environ["CUDA_VISIBLE_DEVICES"] = str(self.gpu_id)
@@ -212,6 +215,7 @@ class Fork:
     def model_summary(self, model):
         """
         Used for displaying the model architecture summary to the user. Called when verbose > 1.
+
         :param model: Model to be displayed.
         :type model: object
         :return: None
@@ -221,6 +225,7 @@ class Fork:
     def get_model(self) -> object:
         """
         Builds the model for use during the training sequence.
+
         :return: Deep learning model to be compiled and fit.
         :rtype: object
         """
@@ -257,6 +262,7 @@ class Fork:
     def model_compile(self, model, optimizer, loss, metrics) -> object:
         """
         Compiles the model for training
+
         :param model: Model to be compiled
         :type model: object
         :param optimizer: Training optimizer
@@ -275,6 +281,7 @@ class Fork:
     ) -> object:
         """
         Trains the compiled model and returns the history of training.
+
         :param model: Model to train
         :type model: object
         :param train_set: Training dataset to fit against
@@ -295,6 +302,7 @@ class Fork:
     def model_evaluate(self, model, test_set):
         """
         Evaluates the model against the provided test set.
+
         :param model: Model to evaluate
         :type model: object
         :param test_set: Dataset to test the model against
@@ -306,6 +314,7 @@ class Fork:
     def model_save(self, model):
         """
         Save the model to disk.
+
         :param model: Trained model to save
         :type model: object
         :return: None
@@ -315,6 +324,7 @@ class Fork:
     def preprocess(self, record):
         """
         Preprocesses the data record into appropriate format for the model
+
         :param record: A single record information to preprocess during dataset mapping for feeding into the model.
         :type record: object
         :return: A preprocessed record to be fed into the model.
@@ -343,6 +353,7 @@ class Fork:
     def get_filepaths(self):
         """
         Gets the filepaths to the data that will then be processed by get_dataset.
+
         :return: train_filepaths, test_filepaths, valid_filepaths
         :rtype: (list, list, list)
         """
@@ -367,6 +378,7 @@ class Fork:
     def get_datasets(self, train_fp, test_fp, valid_fp):
         """
         Gets the datasets to be passed into the model for training and evaluation.
+
         :param train_fp: List of filepaths of training data.
         :type train_fp: list
         :param test_fp: List of filepaths of test data.
@@ -407,6 +419,7 @@ class Fork:
     def plot_metric(self, history, metric):
         """
         Takes the history object and the provided metric and graphs them using plot.
+
         :param history (dict): History of model training.
         :param metric (string): Metric to plot.
         :return: None
@@ -416,6 +429,7 @@ class Fork:
     def save_metric(self, run_results, history, metric):
         """
         Takes the history object and the provided metric and stores the latest value into the provided dictionary.
+
         :param run_results: Dictionary to store the last metric value in.
         :type run_results: dict
         :param history: History of model training.
@@ -429,6 +443,7 @@ class Fork:
     def save_history(self, history, out_file):
         """
         Saves the model history object to the designated output file.
+
         :param history: Training history generated during model_fit.
         :type history: dict
         :param out_file: File object to save history to.
