@@ -1,7 +1,7 @@
-furcate.furcate\-tf package
+furcate\-tf package
 ===========================
 
-furcate.furcate\-tf.fork module
+furcate\-tf.fork module
 -------------------------------
 
 .. automodule:: furcate.furcate_tf.fork

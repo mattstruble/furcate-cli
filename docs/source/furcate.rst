@@ -8,11 +8,3 @@ furcate.fork module
    :members:
    :undoc-members:
    :show-inheritance:
-
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   furcate.furcate_tf
